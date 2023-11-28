@@ -42,7 +42,8 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
 def Figure_1():
     # Show experimental setup
     np.random.seed(0x5EED)
-    fluo = Speckle_2D.Fluorescence_2D(num_pix=201, num_atoms=19, kmax=5, useCrystal=False, useDFT=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=5, num_pix=201, num_atoms=19,
+                                      useCrystal=False)
 
     def drawSphere(xCenter, yCenter, zCenter, r):
         # draw sphere
@@ -251,7 +252,7 @@ def Figure_Intro_Components():
 
 def Figure_2():
     # Show how we get the Phi map and what the bispectrum and closure look like
-    fluo = Speckle_1D.Fluorescence_1D(num_atoms=3, num_pix=101, kmax=5, useDFT=False)
+    fluo = Speckle_1D.Fluorescence_1D(kmax=5, num_pix=101, num_atoms=3)
     num_shots = 10000
 
     cmap = copy.copy(matplotlib.cm.get_cmap('viridis'))
@@ -265,7 +266,7 @@ def Figure_2():
 
     # Plot the bispectrum
     box_extent = 2*fluo.kmax
-    bispectrum = fluo.marginalize_g3(num_shots=num_shots, saveMem=False)
+    bispectrum = fluo.marginalize_g3(num_shots=num_shots)
     masked_bispectrum = np.ma.masked_where(fluo.weights_2d == 0, bispectrum)
     im = ax1.imshow(masked_bispectrum, origin='lower', cmap=cmap, extent=[-box_extent, box_extent, -box_extent, box_extent])
     divider = make_axes_locatable(ax1)
@@ -363,7 +364,7 @@ def Figure_2():
 def Figure_3():
     # Simple Phi solving without sign information
     np.random.seed(0x5EED+1)
-    fluo = Speckle_1D.Fluorescence_1D(num_atoms=3, num_pix=201, kmax=5, useDFT=False)
+    fluo = Speckle_1D.Fluorescence_1D(kmax=5, num_pix=201, num_atoms=3)
 
     solved = fluo.simple_PhiSolver(num_shots=10000)
     solved = unwrap_phase(solved)
@@ -395,14 +396,15 @@ def Figure_3():
 def Figure_4():
     # Intersection finding plot
     np.random.seed(0x5EED)
-    fluo = Speckle_1D.Fluorescence_1D(num_atoms=3, num_pix=51, kmax=5, useDFT=False)
+    fluo = Speckle_1D.Fluorescence_1D(kmax=5, num_pix=51, num_atoms=3)
     solved, error = fluo.PhiSolver(num_shots=10000) # Use phase_from_data in PhiSolver, error_threshold=10
     # Remember to uncomment below "Plot some stuff for publication" in find_next_phi
 
 def Figure_ResolvingDemo():
     # Constraining the possible values of Phi at large displacements from the origin
     np.random.seed(0x5EED)
-    fluo = Speckle_2D.Fluorescence_2D(num_pix=11, num_atoms=3, kmax=3, useCrystal = False, useDFT=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=11, num_atoms=3,
+                                      useCrystal=False)
 
     from skimage.restoration import unwrap_phase
     num_shots = 1000
@@ -566,12 +568,13 @@ def Figure_PhaseSolving_1D(num_atoms=3, num_pix=201, kmax=7, useDFT=False):
 
     num_shots = 10000
     np.random.seed(0x5EED+2)
-    fluo = Speckle_1D.Fluorescence_1D(num_atoms=num_atoms, num_pix=num_pix, kmax=kmax, useDFT=useDFT)
+    fluo = Speckle_1D.Fluorescence_1D(kmax=kmax, num_pix=num_pix,
+									  num_atoms=num_atoms)
     # Initial data to be fitted
     Phi_from_dataPhase = fluo.phase_from_data(num_shots=num_shots)
     Phi_from_dataPhase = (Phi_from_dataPhase[fluo.num_pix - 1:3 * fluo.num_pix // 2, fluo.num_pix - 1:3 * fluo.num_pix // 2] + Phi_from_dataPhase[fluo.num_pix // 2:fluo.num_pix,fluo.num_pix // 2:fluo.num_pix][::-1,::-1]) / 2
     # Averaging data from both sides of the central axis
-    g2_from_data = fluo.marginalize_g2(num_shots=num_shots, saveMem=False)
+    g2_from_data = fluo.marginalize_g2(num_shots=num_shots)
 
     # Simple optimization of the error function using differential evolution on compact support
     print("Learning real-space solution...")
@@ -580,7 +583,8 @@ def Figure_PhaseSolving_1D(num_atoms=3, num_pix=201, kmax=7, useDFT=False):
     print("Solution", res.x)
     print("Actual", fluo.coords)
 
-    trial = Speckle_1D.Fluorescence_1D(num_atoms=num_atoms, num_pix=num_pix, kmax=kmax, useDFT=useDFT, x=res.x)
+    trial = Speckle_1D.Fluorescence_1D(kmax=kmax, num_pix=num_pix,
+									   num_atoms=num_atoms, x=res.x)
 
     # Exact solution
     solved, error = fluo.PhiSolver(num_shots=num_shots)  # Use phase_from_data in PhiSolver, error_threshold=10
@@ -728,7 +732,8 @@ def Figure_5_Rows(num_atoms=3, num_pix=201, kmax=7, useDFT=False):
 
 def Figure_7():
     np.random.seed(0x5EED+1)
-    fluo = Speckle_2D.Fluorescence_2D(num_pix=101, num_atoms=7, kmax=5, useCrystal=False, useDFT=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=5, num_pix=101, num_atoms=7,
+                                      useCrystal=False)
 
     fig = P.figure(figsize=(17, 10)) # Changing this will affect colorbar placement for the whole figure, be careful
     P.rcParams.update({'font.size': 22})
@@ -815,7 +820,8 @@ def Figure_7():
 def Figure_8():
     # Simple side-by-side comparison of how having extra k-space gives better real space resolution with and without phase information
     np.random.seed(0x5EED+2)
-    fluo = Speckle_2D.Fluorescence_2D(num_atoms=5, num_pix=201, kmax=8, useCrystal=False, useDFT=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=8, num_pix=201, num_atoms=5,
+                                      useCrystal=False)
     P.rcParams.update({'font.size': 22})
 
     box_extent = np.max(fluo.x_pix[0])
@@ -926,7 +932,7 @@ def Figure_8():
 def Figure_PhaseRamp_HarmInv():
     np.random.seed(0x5EED+2)
     # Show the effects of phase ramps, sign flips, and the use of harmonic inversion to find a 1D structure
-    fluo = Speckle_1D.Fluorescence_1D(num_atoms=3, kmax=5, num_pix=501)
+    fluo = Speckle_1D.Fluorescence_1D(kmax=5, num_pix=501, num_atoms=3)
 
     fig = P.figure(figsize=(20, 5))
     P.rcParams.update({'font.size': 22})
@@ -1074,10 +1080,12 @@ def Figure_PhaseRamp_HarmInv():
 
 def Figure_CoarsePhase_Demo():
     np.random.seed(0x5EED+2)
-    fluo = Speckle_2D.Fluorescence_2D(num_atoms=5, num_pix=101, kmax=3, useCrystal=False, useDFT=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=101, num_atoms=5,
+                                      useCrystal=False)
 
     np.random.seed(0x5EED + 2)
-    fluo_coarse = Speckle_2D.Fluorescence_2D(num_atoms=5, num_pix=15, kmax=3, useCrystal=False, useDFT=False)
+    fluo_coarse = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=15, num_atoms=5,
+                                             useCrystal=False)
 
     P.rcParams.update({'font.size': 22})
     box_extent = 2*fluo.kmax

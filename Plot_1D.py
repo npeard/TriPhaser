@@ -12,7 +12,9 @@ class Plot_1D:
         self.num_pix = num_pix
         self.kmax = kmax
         self.useDFT = useDFT
-        self.fluo = Speckle_1D.Fluorescence_1D(num_atoms=self.num_atoms, num_pix=self.num_pix, kmax=self.kmax, useDFT=self.useDFT)
+        self.fluo = Speckle_1D.Fluorescence_1D(kmax=self.kmax,
+                                               num_pix=self.num_pix,
+                                               num_atoms=self.num_atoms)
 
 
     def plot_Object(self):
@@ -54,7 +56,7 @@ class Plot_1D:
         # PLOT DETECTOR INTENSITIES, g2 MARGINALIZED
         #P.plot(self.fluo.q_pix, np.abs(self.fluo.coh_ft_double)**2, label='True Intensity')
         P.plot(self.fluo.k_pix, np.abs(self.fluo.coh_ft)**2, label='True Intensity')
-        g2 = self.fluo.marginalize_g2(num_shots=num_shots, saveMem=False)
+        g2 = self.fluo.marginalize_g2(num_shots=num_shots)
         measured = (g2 - 1 + 1. / self.fluo.num_atoms)
         P.plot(self.fluo.q_pix, measured, 'o--', label='Intensity Measured via g2 (Outer Product)')
 
@@ -92,9 +94,11 @@ class Plot_1D:
                 rel_diff = np.zeros((num_molecules, 2*num_pix-1))
                 with open(file, 'a') as f:
                     for n in range(num_molecules):
-                        temp_fluo = Speckle_1D.Fluorescence_1D(num_atoms=atom_num[m], num_pix=num_pix)
+                        temp_fluo = Speckle_1D.Fluorescence_1D(num_pix=num_pix,
+                                                               num_atoms=
+                                                               atom_num[m])
                         true_intens = np.abs(temp_fluo.coh_ft_double)**2
-                        g2 = temp_fluo.marginalize_g2(num_shots=num_shots, saveMem=False)
+                        g2 = temp_fluo.marginalize_g2(num_shots=num_shots)
                         g2_intens = g2 - 1 + 1/atom_num[m]
                         rel_diff[n,:] = (true_intens-g2_intens)**2/true_intens**2
                     #error[m,:] = rel_diff.mean(0)
@@ -137,14 +141,14 @@ class Plot_1D:
         fig = P.figure(figsize=(15, 5))
         ax1 = fig.add_subplot(131)
         ax1.set_title(("Outer Product g3"))
-        g3_outer = self.fluo.marginalize_g3(num_shots=num_shots, saveMem=False)
+        g3_outer = self.fluo.marginalize_g3(num_shots=num_shots)
         g3_outer_reduced = g3_outer[self.fluo.num_pix//2:3*self.fluo.num_pix//2,self.fluo.num_pix//2:3*self.fluo.num_pix//2]
         im = ax1.imshow(g3_outer)
         P.colorbar(im, ax=ax1)
 
         ax2 = fig.add_subplot(132)
         ax2.set_title(("Bispectrum g3"))
-        g3_fft = self.fluo.marginalize_g3(num_shots=num_shots, saveMem=True)
+        g3_fft = self.fluo.marginalize_g3(num_shots=num_shots)
         im = ax2.imshow(g3_fft)
         P.colorbar(im, ax=ax2)
 
@@ -161,7 +165,7 @@ class Plot_1D:
     def plot_Closure(self, num_shots=10000, saveMem = False):
         # PLOT THE CLOSURES AND THEIR DIFFERENCE
         fig = P.figure(figsize=(15, 5))
-        cdata = self.fluo.closure_from_data(num_shots=num_shots, saveMem = saveMem)
+        cdata = self.fluo.closure_from_data(num_shots=num_shots)
         s = fig.add_subplot(131)
         im = s.imshow(cdata)
         s.set_title("Closure from Data")
@@ -187,7 +191,7 @@ class Plot_1D:
         # PLOT THE PHASE MAP IN K-SPACE
         fig = P.figure(figsize=(10, 5))
         s = fig.add_subplot(121)
-        im = s.imshow(self.fluo.phase_from_data(num_shots=num_shots, saveMem=saveMem))
+        im = s.imshow(self.fluo.phase_from_data(num_shots=num_shots))
         s.set_title("Phase from Data")
         P.colorbar(im, ax=s)
 
@@ -205,7 +209,8 @@ class Plot_1D:
         cosPhi_from_structure = self.fluo.cosPhi_from_structure()
         cosPhi_from_data = self.fluo.cosPhi_from_data(num_shots=num_shots)
         cosPhi_from_fft = self.fluo.cosPhi_fft(num_shots=num_shots)
-        cosPhi_from_dataPhase = np.cos(self.fluo.phase_from_data(num_shots=num_shots))
+        cosPhi_from_dataPhase = np.cos(
+            self.fluo.phase_from_data(num_shots=num_shots))
         cosPhi_from_dataPhase = (cosPhi_from_dataPhase[self.fluo.num_pix-1:3*self.fluo.num_pix//2,self.fluo.num_pix-1:3*self.fluo.num_pix//2] + cosPhi_from_dataPhase[self.fluo.num_pix//2:self.fluo.num_pix, self.fluo.num_pix//2:self.fluo.num_pix][::-1,::-1])/2  # Averaging data from both sides of the central axis
         cosPhi_from_structurePhase = np.cos(self.fluo.phase_from_structure())[self.fluo.num_pix-1:,self.fluo.num_pix-1:]
         #cosPhi_from_g3slice = self.fluo.cosPhi_from_g3Slice(num_shots=num_shots)
@@ -284,7 +289,9 @@ class Plot_1D:
                 rel_diff = np.zeros((num_molecules))
                 with open(file, 'a') as f:
                     for n in range(num_molecules):
-                        temp_fluo = Speckle_1D.Fluorescence_1D(num_atoms=atom_num[m], num_pix=num_pix)
+                        temp_fluo = Speckle_1D.Fluorescence_1D(num_pix=num_pix,
+                                                               num_atoms=
+                                                               atom_num[m])
                         cosPhi_from_structure = temp_fluo.cosPhi_from_structure()
                         cosPhi_from_data = temp_fluo.cosPhi_from_data(num_shots=num_shots)
                         rel_diff[n] = np.sum( (cosPhi_from_structure - cosPhi_from_data)**2 / cosPhi_from_structure**2 )
@@ -396,7 +403,7 @@ class Plot_1D:
         # Initial data to be fitted
         Phi_from_dataPhase = self.fluo.phase_from_data(num_shots=num_shots)
         Phi_from_dataPhase = (Phi_from_dataPhase[self.fluo.num_pix - 1:3 * self.fluo.num_pix // 2, self.fluo.num_pix - 1:3 * self.fluo.num_pix // 2] + Phi_from_dataPhase[self.fluo.num_pix // 2:self.fluo.num_pix,self.fluo.num_pix // 2:self.fluo.num_pix][::-1,::-1]) / 2  # Averaging data from both sides of the central axis
-        g2_from_data = self.fluo.marginalize_g2(num_shots=num_shots, saveMem=False)
+        g2_from_data = self.fluo.marginalize_g2(num_shots=num_shots)
 
         # Simple optimization of the error function using differential evolution on compact support
         print("Learning real-space solution...")
@@ -417,7 +424,10 @@ class Plot_1D:
         print("Solution", res.x)
         print("Actual", self.fluo.coords)
 
-        self.trial = Speckle_1D.Fluorescence_1D(num_atoms=self.num_atoms, num_pix=self.num_pix, kmax=self.kmax,useDFT=self.useDFT, x=res.x)
+        self.trial = Speckle_1D.Fluorescence_1D(kmax=self.kmax,
+                                                num_pix=self.num_pix,
+                                                num_atoms=self.num_atoms,
+                                                x=res.x)
 
         fig = P.figure(figsize=(14, 7))
         s = fig.add_subplot(231)

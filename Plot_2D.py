@@ -30,7 +30,9 @@ class Plot_2D:
         self.num_pix = num_pix
         self.kmax = kmax
         self.useDFT = useDFT
-        self.fluo = Speckle_2D.Fluorescence_2D(num_atoms=num_atoms, num_pix=num_pix, kmax=kmax, useCrystal = useCrystal, useDFT = useDFT)
+        self.fluo = Speckle_2D.Fluorescence_2D(kmax=kmax, num_pix=num_pix,
+                                               num_atoms=num_atoms,
+                                               useCrystal=useCrystal)
 
 
     def plot_Object(self):
@@ -133,7 +135,7 @@ class Plot_2D:
 
         s = fig.add_subplot(222)
         s.set_title(("Intensity Measured via g2"))
-        measured = self.fluo.marginalize_g2(num_shots=num_shots) - 1 + 1./self.fluo.num_atoms
+        measured = self.fluo.marginalize_g2(num_shots=num_shots) - 1 + 1. / self.fluo.num_atoms
         im = s.imshow(measured, cmap=colormap, origin='lower')
         P.colorbar(im, ax=s)
 
@@ -163,7 +165,7 @@ class Plot_2D:
         cstruct = self.fluo.closure_from_structure()[dim, :, dim, :]
         if saveMem:
             dim = dim//2
-        cdata = self.fluo.closure_from_data(num_shots=num_shots, saveMem=saveMem)[dim, :, dim, :]
+        cdata = self.fluo.closure_from_data(num_shots=num_shots)[dim, :, dim, :]
 
         # Plot
         fig = P.figure(figsize=(15, 5))
@@ -193,7 +195,7 @@ class Plot_2D:
         cPhaseStruct = self.fluo.phase_from_structure()[dim,:,dim,:]
         if saveMem:
             dim = dim//2
-        cPhaseData = self.fluo.phase_from_data(num_shots=num_shots, saveMem=saveMem)[dim, :, dim, :]
+        cPhaseData = self.fluo.phase_from_data(num_shots=num_shots)[dim, :, dim, :]
 
         # Plot
         fig = P.figure(figsize=(15, 5))
@@ -223,7 +225,8 @@ class Plot_2D:
         cosPhi_from_structure = self.fluo.cosPhi_from_structure()[1,:,1,:]
         cosPhi_from_data = self.fluo.cosPhi_from_data(num_shots=num_shots)[1,:,1,:]
         cosPhi_from_fft = self.fluo.cosPhi_fft(num_shots=num_shots)[1,:,1,:]
-        cosPhi_from_dataPhase = np.cos(self.fluo.phase_from_data(num_shots=num_shots))
+        cosPhi_from_dataPhase = np.cos(
+            self.fluo.phase_from_data(num_shots=num_shots))
         cosPhi_from_dataPhase = ( cosPhi_from_dataPhase[self.fluo.num_pix-1:2*self.fluo.num_pix,self.fluo.num_pix-1:2*self.fluo.num_pix,self.fluo.num_pix-1:2*self.fluo.num_pix,self.fluo.num_pix-1:2*self.fluo.num_pix] + cosPhi_from_dataPhase[0:self.fluo.num_pix,0:self.fluo.num_pix,0:self.fluo.num_pix,0:self.fluo.num_pix][::-1,::-1,::-1,::-1] )[1,:,1,:]/2
         cosPhi_from_structurePhase = np.cos(self.fluo.phase_from_structure())[1,:,1,:]
 
@@ -261,7 +264,8 @@ class Plot_2D:
                       self.num_pix - 1:]
         quad2_real_phase = self.fluo.coh_phase_double[:self.num_pix, self.num_pix-1:][::-1,:]
 
-        cosPhi_from_dataPhase = np.cos(self.fluo.phase_from_data(num_shots=num_shots))
+        cosPhi_from_dataPhase = np.cos(
+            self.fluo.phase_from_data(num_shots=num_shots))
         quad1_cosPhi_from_dataPhase = (cosPhi_from_dataPhase[self.num_pix - 1:2 * self.num_pix,
                                  self.num_pix - 1:2 * self.num_pix,
                                  self.num_pix - 1:2 * self.num_pix,
@@ -393,7 +397,8 @@ class Plot_2D:
         error[:,:self.num_pix] = error[:,self.num_pix-1:][::-1,::-1]
 
         box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(2*self.fluo.num_pix, d=2 * self.fluo.kmax / self.fluo.num_pix)))
-        measured_amplitude = self.fluo.marginalize_g2(num_shots=num_shots) - 1 + 1. / self.fluo.num_atoms
+        measured_amplitude = self.fluo.marginalize_g2(
+            num_shots=num_shots) - 1 + 1. / self.fluo.num_atoms
         measured_amplitude[measured_amplitude<0] = 0
 
         obj_solved = np.abs(np.fft.fftshift(np.fft.ifftn(np.fft.fftshift(measured_amplitude*np.exp(1j*solved)))))
@@ -600,7 +605,7 @@ class Plot_2D:
                              self.fluo.num_pix // 2:self.fluo.num_pix,
                              self.fluo.num_pix // 2:self.fluo.num_pix,
                              self.fluo.num_pix // 2:self.fluo.num_pix][::-1, ::-1, ::-1, ::-1]) / 2
-        g2_from_data = self.fluo.marginalize_g2(num_shots=num_shots, saveMem=False)
+        g2_from_data = self.fluo.marginalize_g2(num_shots=num_shots)
 
         # Simple optimization of the error function using differential evolution on compact support
         print("Learning real-space solution...")
@@ -611,7 +616,11 @@ class Plot_2D:
 
         # Note that we use self.num_atoms here, in case we are working with examples where
         # some parameters of the simulation to be solved are unknown
-        self.trial = Speckle_2D.Fluorescence_2D(num_atoms=self.num_atoms, num_pix=self.num_pix, kmax=self.kmax,useDFT=self.useDFT, x=res.x.reshape(2,self.num_atoms))
+        self.trial = Speckle_2D.Fluorescence_2D(kmax=self.kmax,
+                                                num_pix=self.num_pix,
+                                                num_atoms=self.num_atoms,
+                                                x=res.x.reshape(2,
+                                                                self.num_atoms))
 
         fig = P.figure(figsize=(14, 7))
         s = fig.add_subplot(251)

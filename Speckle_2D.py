@@ -9,7 +9,8 @@ from numba import jit
 
 
 class Fluorescence_2D:
-    def __init__(self, kmax=5, num_pix=51, num_atoms=3, useCrystal = False, useDFT = False, x = None):
+    def __init__(self, kmax=5, num_pix=51, num_atoms=3, useCrystal=False,
+                 x=None):
         """Form a complex number.
 
         Keyword arguments:
@@ -20,7 +21,6 @@ class Fluorescence_2D:
         self.kmax = kmax
         self.num_pix = num_pix
         self.useCrystal = useCrystal
-        self.useDFT = useDFT
         self.x = x # User-supplied coordinates
         if self.useCrystal is True:
             print("Using crystal structure obtained from Xtal class...")
@@ -127,18 +127,10 @@ class Fluorescence_2D:
         self.kr_product_y = np.multiply.outer(self.k_pix[1, :, :], self.coords[1, :])
         self.qr_product_x = np.multiply.outer(self.q_pix[0, :, :], self.coords[0, :])
         self.qr_product_y = np.multiply.outer(self.q_pix[1, :, :], self.coords[1, :])
-        if self.useDFT:
-            self.coh_ft = np.fft.fftshift(np.fft.fft2(self.object))
-            self.coh_phase = np.angle(self.coh_ft)
-            self.coh_ft_double = np.fft.fftshift(np.fft.fft2(self.object_double))
-            self.coh_phase_double = np.angle(self.coh_ft_double)
-        else:
-            # This uses the analytical model
-            self.coh_ft = np.exp(-1j * (self.kr_product_x + self.kr_product_y + 0)*2*np.pi).mean(2)
-            self.coh_phase = np.angle(self.coh_ft)
-            self.coh_ft_double = np.exp(-1j * (self.qr_product_x + self.qr_product_y + 0)*2*np.pi).mean(2)
-            self.coh_phase_double = np.angle(self.coh_ft_double)
-
+        self.coh_ft = np.exp(-1j * (self.kr_product_x + self.kr_product_y + 0)*2*np.pi).mean(2)
+        self.coh_phase = np.angle(self.coh_ft)
+        self.coh_ft_double = np.exp(-1j * (self.qr_product_x + self.qr_product_y + 0)*2*np.pi).mean(2)
+        self.coh_phase_double = np.angle(self.coh_ft_double)
 
     def crystal_coords(self):
         """Form a complex number.
@@ -182,17 +174,10 @@ class Fluorescence_2D:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        if self.useDFT:
-             Phases = np.random.random(self.object.shape) * 2 * np.pi
-             T = self.object * np.exp(1j * Phases)
-             I = np.abs(np.fft.fft2(T))**2
-             # No fftshift?
-             return I
-        else:
-             incoh = np.abs(np.exp(
-                -1j * ((self.kr_product_x + self.kr_product_y + np.random.random((self.num_atoms))) * 2. * np.pi)).mean(
-                2))**2
-             return incoh
+        incoh = np.abs(np.exp(-1j * ((self.kr_product_x + self.kr_product_y
+                                       + np.random.random((self.num_atoms)))
+                                      * 2. * np.pi)).mean(2))**2
+        return incoh
 
 
     def get_g2(self, num_shots=1000):
@@ -247,7 +232,7 @@ class Fluorescence_2D:
         return self.g2_2d
 
 
-    def marginalize_g2(self, num_shots=1000, saveMem=True):
+    def marginalize_g2(self, num_shots=1000):
         """Form a complex number.
 
         Keyword arguments:
@@ -257,29 +242,26 @@ class Fluorescence_2D:
         if self.g2_2d is not None:
             return self.g2_2d
 
-        if saveMem:
-            return self.g2_fft(num_shots=num_shots)
-        else:
-            if self.g2 is None:
-                self.g2 = self.get_g2(num_shots=num_shots)
-            q_2d = np.subtract.outer(np.arange(self.num_pix), np.arange(self.num_pix))
-            q_2d -= q_2d.min()
+        if self.g2 is None:
+            self.g2 = self.get_g2(num_shots=num_shots)
+        q_2d = np.subtract.outer(np.arange(self.num_pix), np.arange(self.num_pix))
+        q_2d -= q_2d.min()
 
-            # Better, but would be nice if the indexing worked directly for 4D matrices, or we need to Cythonize this
-            self.g2_2d = np.zeros_like(self.weights_2d)
-            for k1x in range(self.num_pix):
-                for k2x in range(self.num_pix):
-                    np.add.at(self.g2_2d[self.num_pix - 1 + k1x - k2x, :], q_2d, self.g2[k1x, :, k2x, :])
+        # Better, but would be nice if the indexing worked directly for 4D matrices, or we need to Cythonize this
+        self.g2_2d = np.zeros_like(self.weights_2d)
+        for k1x in range(self.num_pix):
+            for k2x in range(self.num_pix):
+                np.add.at(self.g2_2d[self.num_pix - 1 + k1x - k2x, :], q_2d, self.g2[k1x, :, k2x, :])
 
-            # Explicit quadruple for loops, very slow
-            # for k1x in range(self.num_pix):
-            #     for k2x in range(self.num_pix):
-            #         for k1y in range(self.num_pix):
-            #             for k2y in range(self.num_pix):
-            #                 g2_2d[self.num_pix - 1 + k1x - k2x, self.num_pix - 1 + k1y - k2y] += self.g2[k1x,k1y,k2x,k2y]
-            self.g2_2d[self.weights_2d > 0] /= self.weights_2d[self.weights_2d > 0]
+        # Explicit quadruple for loops, very slow
+        # for k1x in range(self.num_pix):
+        #     for k2x in range(self.num_pix):
+        #         for k1y in range(self.num_pix):
+        #             for k2y in range(self.num_pix):
+        #                 g2_2d[self.num_pix - 1 + k1x - k2x, self.num_pix - 1 + k1y - k2y] += self.g2[k1x,k1y,k2x,k2y]
+        self.g2_2d[self.weights_2d > 0] /= self.weights_2d[self.weights_2d > 0]
 
-            return self.g2_2d
+        return self.g2_2d
 
 
     def get_g3(self, num_shots=1000):
@@ -299,68 +281,35 @@ class Fluorescence_2D:
             self.g3 *= num_shots**2 / np.multiply.outer(np.multiply.outer(ave_intens, ave_intens), ave_intens)
         return self.g3
 
-
-    def get_g3_fft(self, num_shots=1000):
+    def marginalize_g3(self, num_shots=1000):
         """Form a complex number.
 
         Keyword arguments:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        print("Performing third-order correlation via FFT...")
-        self.g3_4d = np.zeros(4*(self.num_pix,))
-        sum = np.zeros_like(self.g3_4d, dtype=complex)
 
-        q1x,q1y,q2x,q2y = np.indices(4*(self.num_pix,))
-        q3x = (-q1x-q2x) % (self.num_pix)
-        q3y = (-q1y-q2y) % (self.num_pix)
-        for i in range(num_shots):
-            incoh = self.get_incoh_intens()
-            fft_incoh = np.fft.fft2(incoh)
-            BiSpec = fft_incoh[q1x, q1y] * fft_incoh[q2x, q2y] * fft_incoh[q3x, q3y]
-            add = np.fft.ifftn(BiSpec)
-            sum += add
+        if self.g3 is None:
+            self.g3 = self.get_g3(num_shots=num_shots)
+        self.g3_4d = np.zeros(4 * (len(self.weights_2d),))
 
-        sum = np.fft.fftshift(sum)
-        self.g3_4d = np.real(sum[::-1,::-1,:,:])
-        # Normalize to match outer product method
-        self.g3_4d /= num_shots/self.num_atoms**3
-        self.g3_4d /= self.num_pix**2
-        print("Finished correlation...")
+        k1x, k1y, k2x, k2y, k3x, k3y = np.indices(6 * (self.num_pix,))
+        # Check the ordering of elements here
+        q1x = k1x - k2x
+        q1y = k1y - k2y
+        q2x = k2x - k3x
+        q2y = k2y - k3y
+        q1x -= q1x.min()
+        q1y -= q1y.min()
+        q2x -= q2x.min()
+        q2y -= q2y.min()
+
+        np.add.at(self.g3_4d, tuple([q1x,q1y,q2x,q2y]), self.g3)
+        if self.weights_4d is None:
+            self.init_weights_4d()
+        self.g3_4d[self.weights_4d > 0] /= self.weights_4d[self.weights_4d > 0]
+
         return self.g3_4d
-
-
-    def marginalize_g3(self, num_shots=1000, saveMem=True):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
-        """
-        if saveMem:
-            return self.get_g3_fft(num_shots=num_shots)
-        else:
-            if self.g3 is None:
-                self.g3 = self.get_g3(num_shots=num_shots)
-            self.g3_4d = np.zeros(4 * (len(self.weights_2d),))
-
-            k1x, k1y, k2x, k2y, k3x, k3y = np.indices(6 * (self.num_pix,))
-            # Check the ordering of elements here
-            q1x = k1x - k2x
-            q1y = k1y - k2y
-            q2x = k2x - k3x
-            q2y = k2y - k3y
-            q1x -= q1x.min()
-            q1y -= q1y.min()
-            q2x -= q2x.min()
-            q2y -= q2y.min()
-
-            np.add.at(self.g3_4d, tuple([q1x,q1y,q2x,q2y]), self.g3)
-            if self.weights_4d is None:
-                self.init_weights_4d()
-            self.g3_4d[self.weights_4d > 0] /= self.weights_4d[self.weights_4d > 0]
-
-            return self.g3_4d
 
 
     def closure_from_structure(self, return_phase=False):
@@ -389,22 +338,19 @@ class Fluorescence_2D:
             return c
 
 
-    def closure_from_data(self, num_shots=1000, saveMem = False):
+    def closure_from_data(self, num_shots=1000):
         """Form a complex number.
 
         Keyword arguments:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        self.marginalize_g3(num_shots=num_shots, saveMem=saveMem)
+        self.marginalize_g3(num_shots=num_shots)
         if self.g2_2d is None:
-            self.marginalize_g2(num_shots=num_shots, saveMem=True)
+            self.marginalize_g2(num_shots=num_shots)
 
         g1sq = self.g2_2d - 1 + 1./self.num_atoms
         dim = 2*self.num_pix-1
-        if saveMem:
-            g1sq = g1sq[self.num_pix // 2:3 * self.num_pix // 2, self.num_pix // 2:3 * self.num_pix // 2]
-            dim = self.num_pix
         qx, qy = np.indices(2*(dim,))
         q12x = np.add.outer(qx, qx)
         q12x -= (dim)//2
@@ -415,12 +361,11 @@ class Fluorescence_2D:
         n = self.num_atoms
 
         weights = self.weights_4d
-        if saveMem:
-            weights = self.weights_4d[self.num_pix // 2:3 * self.num_pix // 2, self.num_pix // 2:3 * self.num_pix // 2, self.num_pix // 2:3 * self.num_pix // 2, self.num_pix // 2:3 * self.num_pix // 2]
 
-        c = (self.g3_4d - (1 - 3/n + 4/n**2) - (1-2/n)*(np.add.outer(g1sq,g1sq)+g1sq[q12x,q12y])) * (weights > 0)
+        c = ((self.g3_4d - (1 - 3/n + 4/n**2)
+             - (1-2/n)*(np.add.outer(g1sq, g1sq)+g1sq[q12x,q12y]))
+             * (weights > 0))
         return c
-
 
     def phase_from_structure(self):
         """Form a complex number.
@@ -432,14 +377,14 @@ class Fluorescence_2D:
         return self.closure_from_structure(return_phase=True)
 
 
-    def phase_from_data(self, num_shots=1000, saveMem = False):
+    def phase_from_data(self, num_shots=1000):
         """Form a complex number.
 
         Keyword arguments:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        clos = self.closure_from_data(num_shots=num_shots, saveMem=saveMem)
+        clos = self.closure_from_data(num_shots=num_shots)
         clos = clos / 2
 
         # Remove magnitude of the g1 product
@@ -447,9 +392,6 @@ class Fluorescence_2D:
         g1sq[g1sq < 0] = 0.00000000001
         g1 = np.sqrt(g1sq)
         dim = 2*self.num_pix-1
-        if saveMem:
-            g1 = g1[self.num_pix // 2:3 * self.num_pix // 2, self.num_pix // 2:3 * self.num_pix // 2]
-            dim = self.num_pix
         qx, qy = np.indices(2*(dim,))
         q12x = np.add.outer(qx, qx)
         q12x -= (dim)//2
@@ -490,13 +432,13 @@ class Fluorescence_2D:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        g2 = self.marginalize_g2(num_shots=num_shots, saveMem=True)
+        g2 = self.marginalize_g2(num_shots=num_shots)
         g1sq = g2 - 1. + 1./self.num_atoms
         g1sq[g1sq < 0] = 0.0000000000001
         g1sq_reduced = g1sq[self.num_pix // 2:3 * self.num_pix // 2, self.num_pix // 2:3 * self.num_pix // 2]
         g1_reduced = np.sqrt(g1sq_reduced)
         if self.g3_4d is None:
-            self.g3_4d = self.marginalize_g3(num_shots=num_shots, saveMem=True)
+            self.g3_4d = self.marginalize_g3(num_shots=num_shots)
 
         dim = self.num_pix
         qx, qy = np.indices(2 * (dim,))
@@ -592,7 +534,8 @@ class Fluorescence_2D:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        cosPhi_from_dataPhase = np.cos(self.phase_from_data(num_shots=num_shots))
+        cosPhi_from_dataPhase = np.cos(
+            self.phase_from_data(num_shots=num_shots))
         cosPhi_from_dataPhase = (cosPhi_from_dataPhase[self.num_pix - 1:2 * self.num_pix,
                                  self.num_pix - 1:2 * self.num_pix,
                                   self.num_pix - 1:2 * self.num_pix,
