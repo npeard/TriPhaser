@@ -2,37 +2,25 @@
 
 import numpy as np
 import scipy.signal
-import Xtal
 from scipy import optimize
 from itertools import permutations
 from numba import jit
-import numba as nb
 
 
 class Fluorescence_2D:
-    def __init__(self, kmax=5, num_pix=51, num_atoms=3, useCrystal=False,
-                 x=None):
+    def __init__(self, kmax=5, num_pix=51, num_atoms=3, x=None):
         """Form a complex number.
 
         Keyword arguments:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        print("Running in simulation mode...")
         self.kmax = kmax
         self.num_pix = num_pix
-        self.useCrystal = useCrystal
         self.x = x # User-supplied coordinates
-        if self.useCrystal is True:
-            print("Using crystal structure obtained from Xtal class...")
-            self.Crystal = Xtal.Xtal()
-            self.num_atoms = self.Crystal.get_number_atoms()
-            self.init_system()
-        else:
-            print("Using randomized points as structure...")
-            self.num_atoms = num_atoms
-            self.init_system()
-
+        print("Using randomized points as structure...")
+        self.num_atoms = num_atoms
+        self.init_system()
 
     def init_system(self):
         """Form a complex number.
@@ -55,11 +43,7 @@ class Fluorescence_2D:
         self.g3_4d = None
         self.weights_4d = None
 
-        if self.useCrystal is True:
-            self.crystal_coords()
-        else:
-            self.randomize_coords()
-
+        self.randomize_coords()
 
     def init_weights_4d(self):
         """Form a complex number.
@@ -123,41 +107,6 @@ class Fluorescence_2D:
         self.coh_ft_double = np.exp(-1j * (self.qr_product_x + self.qr_product_y + 0)*2*np.pi).mean(2)
         self.coh_phase_double = np.angle(self.coh_ft_double)
 
-    def crystal_coords(self):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
-        """
-        self.coords = self.Crystal.get_positions().T
-        print(self.coords)
-
-        # Define the object for plotting
-        # This is a real space object, but we place it in a discrete real space with the same number of bins as k-space for DFT
-        self.object = np.zeros_like(self.x_pix[0, :, :])
-        self.object[np.digitize(self.coords[0, :], self.x_pix[0, :, 0]), np.digitize(self.coords[1, :], self.x_pix[1, 0,
-                                                                                                        :])] = 1 / self.num_atoms
-        self.object_double = np.zeros_like(self.x_double_pix[0, :, :])
-        self.object_double[np.digitize(self.coords[0, :], self.x_double_pix[0, :, 0]), np.digitize(self.coords[1, :],
-                                                                                                   self.x_double_pix[1,
-                                                                                                   0,
-                                                                                                   :])] = 1 / self.num_atoms
-        # object_double is NOT the same object with double sampling, it is slightly different in the binning
-
-        # Define the coherent diffraction
-        #self.kz = 0.000001
-        self.kr_product_x = np.multiply.outer(self.k_pix[0, :, :], self.coords[0, :])
-        self.kr_product_y = np.multiply.outer(self.k_pix[1, :, :], self.coords[1, :])
-        #self.kr_product_z = np.multiply.outer(self.kz * np.ones_like(self.k_pix[1, :, :]), self.coords[2, :])
-        self.coh_ft = np.exp(-1j * (self.kr_product_x + self.kr_product_y + 0) * 2 * np.pi).mean(2)
-        self.coh_phase = np.angle(self.coh_ft)
-        self.qr_product_x = np.multiply.outer(self.q_pix[0, :, :], self.coords[0, :])
-        self.qr_product_y = np.multiply.outer(self.q_pix[1, :, :], self.coords[1, :])
-        self.coh_ft_double = np.exp(-1j * (self.qr_product_x + self.qr_product_y + 0) * 2 * np.pi).mean(2)
-        self.coh_phase_double = np.angle(self.coh_ft_double)
-
-
     def get_incoh_intens(self):
         """Form a complex number.
 
@@ -169,7 +118,6 @@ class Fluorescence_2D:
                                        + np.random.random((self.num_atoms)))
                                       * 2. * np.pi)).mean(2))**2
         return incoh
-
 
     def get_g2(self, num_shots=1000):
         """Form a complex number.
@@ -192,36 +140,6 @@ class Fluorescence_2D:
             ave_intens += incoh
 
         return self.g2
-
-
-
-    def g2_fft(self, num_shots=1000):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
-        """
-        # Uses FFT convolution to obtain the marginalized g2. See cross-correlation theorem.
-        if self.g2_2d is not None:
-            return self.g2_2d
-
-        print("Performing second-order correlation using FFT...")
-        self.g2_2d = np.zeros_like(self.q_pix[0, :, :])
-
-        for i in range(num_shots):
-            this_frame = self.get_incoh_intens()
-            #this_frame /= np.max(this_frame)
-            add = scipy.signal.fftconvolve(this_frame, this_frame[::-1, ::-1])
-            self.g2_2d += add
-
-        self.g2_2d /= self.weights_2d * num_shots / self.num_atoms**2
-        #g2_2d /= np.mean(g2_2d)
-        # Remove negative values
-        self.g2_2d[(self.g2_2d - 1 + 1 / self.num_atoms) < 0] = 1 - 1 / self.num_atoms
-        print("Finished correlation...")
-        return self.g2_2d
-
 
     def marginalize_g2(self, num_shots=1000):
         """Form a complex number.

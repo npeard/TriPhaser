@@ -31,8 +31,7 @@ class Plot_2D:
         self.kmax = kmax
         self.useDFT = useDFT
         self.fluo = Speckle_2D.Fluorescence_2D(kmax=kmax, num_pix=num_pix,
-                                               num_atoms=num_atoms,
-                                               useCrystal=useCrystal)
+                                               num_atoms=num_atoms)
 
 
     def plot_Object(self):

@@ -42,8 +42,7 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
 def Figure_1():
     # Show experimental setup
     np.random.seed(0x5EED)
-    fluo = Speckle_2D.Fluorescence_2D(kmax=5, num_pix=201, num_atoms=19,
-                                      useCrystal=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=5, num_pix=201, num_atoms=19)
 
     def drawSphere(xCenter, yCenter, zCenter, r):
         # draw sphere
@@ -403,8 +402,7 @@ def Figure_4():
 def Figure_ResolvingDemo():
     # Constraining the possible values of Phi at large displacements from the origin
     np.random.seed(0x5EED)
-    fluo = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=11, num_atoms=3,
-                                      useCrystal=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=11, num_atoms=3)
 
     from skimage.restoration import unwrap_phase
     num_shots = 1000
@@ -732,8 +730,7 @@ def Figure_5_Rows(num_atoms=3, num_pix=201, kmax=7, useDFT=False):
 
 def Figure_7():
     np.random.seed(0x5EED+1)
-    fluo = Speckle_2D.Fluorescence_2D(kmax=5, num_pix=101, num_atoms=7,
-                                      useCrystal=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=5, num_pix=101, num_atoms=7)
 
     fig = P.figure(figsize=(17, 10)) # Changing this will affect colorbar placement for the whole figure, be careful
     P.rcParams.update({'font.size': 22})
@@ -820,8 +817,7 @@ def Figure_7():
 def Figure_8():
     # Simple side-by-side comparison of how having extra k-space gives better real space resolution with and without phase information
     np.random.seed(0x5EED+2)
-    fluo = Speckle_2D.Fluorescence_2D(kmax=8, num_pix=201, num_atoms=5,
-                                      useCrystal=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=8, num_pix=201, num_atoms=5)
     P.rcParams.update({'font.size': 22})
 
     box_extent = np.max(fluo.x_pix[0])
@@ -1080,12 +1076,10 @@ def Figure_PhaseRamp_HarmInv():
 
 def Figure_CoarsePhase_Demo():
     np.random.seed(0x5EED+2)
-    fluo = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=101, num_atoms=5,
-                                      useCrystal=False)
+    fluo = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=101, num_atoms=5)
 
     np.random.seed(0x5EED + 2)
-    fluo_coarse = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=15, num_atoms=5,
-                                             useCrystal=False)
+    fluo_coarse = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=15, num_atoms=5)
 
     P.rcParams.update({'font.size': 22})
     box_extent = 2*fluo.kmax
