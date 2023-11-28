@@ -5,11 +5,17 @@ import scipy.signal
 import Xtal
 from scipy import optimize
 from itertools import permutations
+from numba import jit
 
 
 class Fluorescence_2D:
     def __init__(self, kmax=5, num_pix=51, num_atoms=3, useCrystal = False, useDFT = False, x = None):
-        # Simulation mode, self.directory is None
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         print("Running in simulation mode...")
         self.kmax = kmax
         self.num_pix = num_pix
@@ -28,6 +34,12 @@ class Fluorescence_2D:
 
 
     def init_system(self):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         print("Initializing system...")
         self.k_pix = np.mgrid[-self.kmax:self.kmax:1j * self.num_pix, -self.kmax:self.kmax:1j * self.num_pix]
         self.x_pix = np.mgrid[-1:1:1j * self.num_pix, -1:1:1j * self.num_pix]
@@ -49,6 +61,12 @@ class Fluorescence_2D:
 
 
     def init_weights_4d(self):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         # This is a huge matrix, do not initialize it unless you need it!
         k1x, k2x, k3x, k1y, k2y, k3y = np.indices(6 * (self.num_pix,))
         # Check the ordering of elements here
@@ -63,8 +81,34 @@ class Fluorescence_2D:
         self.weights_4d = np.zeros(4 * (len(self.weights_2d),))
         np.add.at(self.weights_4d, tuple([q1x,q1y,q2x,q2y]), 1)
 
+    @jit(nopython=True)
+    def init_weights_4d_explicit(self):
+        """Calculate the 4D weights using explicit for-loops.
+
+        Keyword arguments:
+        None
+        """
+        self.weights_4d = np.zeros(4 * (len(self.weights_2d),))
+
+        for k1x in range(self.num_pix):
+            for k2x in range(self.num_pix):
+                for k3x in range(self.num_pix):
+                    for k1y in range(self.num_pix):
+                        for k2y in range(self.num_pix):
+                            for k3y in range(self.num_pix):
+                                q1x = k1x - k2x + self.num_pix - 1
+                                q1y = k1y - k2y + self.num_pix - 1
+                                q2x = k2x - k3x + self.num_pix - 1
+                                q2y = k2y - k3y + self.num_pix - 1
+                                self.weights_4d[q1x, q1y, q2x, q2y] += 1
 
     def randomize_coords(self):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         self.coords = np.random.random((2, self.num_atoms)) * 2 - 1
 
         if self.x is not None:
@@ -97,6 +141,12 @@ class Fluorescence_2D:
 
 
     def crystal_coords(self):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         self.coords = self.Crystal.get_positions().T
         print(self.coords)
 
@@ -126,13 +176,19 @@ class Fluorescence_2D:
 
 
     def get_incoh_intens(self):
-         if self.useDFT:
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
+        if self.useDFT:
              Phases = np.random.random(self.object.shape) * 2 * np.pi
              T = self.object * np.exp(1j * Phases)
              I = np.abs(np.fft.fft2(T))**2
              # No fftshift?
              return I
-         else:
+        else:
              incoh = np.abs(np.exp(
                 -1j * ((self.kr_product_x + self.kr_product_y + np.random.random((self.num_atoms))) * 2. * np.pi)).mean(
                 2))**2
@@ -140,6 +196,12 @@ class Fluorescence_2D:
 
 
     def get_g2(self, num_shots=1000):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         if self.g2 is not None:
             return self.g2
 
@@ -158,6 +220,12 @@ class Fluorescence_2D:
 
 
     def g2_fft(self, num_shots=1000):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         # Uses FFT convolution to obtain the marginalized g2. See cross-correlation theorem.
         if self.g2_2d is not None:
             return self.g2_2d
@@ -180,6 +248,12 @@ class Fluorescence_2D:
 
 
     def marginalize_g2(self, num_shots=1000, saveMem=True):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         if self.g2_2d is not None:
             return self.g2_2d
 
@@ -209,6 +283,12 @@ class Fluorescence_2D:
 
 
     def get_g3(self, num_shots=1000):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         if self.g3 is None:
             ave_intens = np.zeros(2 * (self.num_pix,))
             self.g3 = np.zeros(6 * (self.num_pix,))
@@ -221,6 +301,12 @@ class Fluorescence_2D:
 
 
     def get_g3_fft(self, num_shots=1000):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         print("Performing third-order correlation via FFT...")
         self.g3_4d = np.zeros(4*(self.num_pix,))
         sum = np.zeros_like(self.g3_4d, dtype=complex)
@@ -245,6 +331,12 @@ class Fluorescence_2D:
 
 
     def marginalize_g3(self, num_shots=1000, saveMem=True):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         if saveMem:
             return self.get_g3_fft(num_shots=num_shots)
         else:
@@ -272,6 +364,12 @@ class Fluorescence_2D:
 
 
     def closure_from_structure(self, return_phase=False):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         pseudo_coh_ft_double = np.exp(-1j * (self.qr_product_x + self.qr_product_y) ).sum(2)
         coh_12 = np.multiply.outer(pseudo_coh_ft_double, pseudo_coh_ft_double)
         sum_q_x = -np.add.outer(self.q_pix[0,:,:], self.q_pix[0,:,:])
@@ -292,6 +390,12 @@ class Fluorescence_2D:
 
 
     def closure_from_data(self, num_shots=1000, saveMem = False):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         self.marginalize_g3(num_shots=num_shots, saveMem=saveMem)
         if self.g2_2d is None:
             self.marginalize_g2(num_shots=num_shots, saveMem=True)
@@ -319,10 +423,22 @@ class Fluorescence_2D:
 
 
     def phase_from_structure(self):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         return self.closure_from_structure(return_phase=True)
 
 
     def phase_from_data(self, num_shots=1000, saveMem = False):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         clos = self.closure_from_data(num_shots=num_shots, saveMem=saveMem)
         clos = clos / 2
 
@@ -351,6 +467,12 @@ class Fluorescence_2D:
 
 
     def cosPhi_from_structure(self):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         real_phase = self.coh_phase_double[self.num_pix-1:, self.num_pix-1:]
         Phi = np.zeros(4*(self.num_pix,))
         for n in range(self.num_pix):
@@ -362,6 +484,12 @@ class Fluorescence_2D:
 
 
     def cosPhi_fft(self, num_shots=1000):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         g2 = self.marginalize_g2(num_shots=num_shots, saveMem=True)
         g1sq = g2 - 1. + 1./self.num_atoms
         g1sq[g1sq < 0] = 0.0000000000001
@@ -404,6 +532,12 @@ class Fluorescence_2D:
 
 
     def cosPhi_from_data(self, num_shots=1000):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         idx1 = self.num_pix//2
         idx2 = np.mgrid[0:self.num_pix//2+1, 0:self.num_pix//2+1]
         idx2 = idx2[:,::-1, ::-1]
@@ -452,6 +586,12 @@ class Fluorescence_2D:
 
 
     def PhiSolver(self, num_shots=1000, error_reject=-10):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         cosPhi_from_dataPhase = np.cos(self.phase_from_data(num_shots=num_shots))
         cosPhi_from_dataPhase = (cosPhi_from_dataPhase[self.num_pix - 1:2 * self.num_pix,
                                  self.num_pix - 1:2 * self.num_pix,
@@ -631,6 +771,12 @@ class Fluorescence_2D:
 
 
     def PhiSolver_manualSelect(self, Phi = None, quadX0 = [0,0], Alt = None):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         #real_phase = self.coh_phase_double[self.num_pix - 1:3 * self.num_pix // 2, self.num_pix - 1:3 * self.num_pix // 2]
         real_phase = self.coh_phase_double[self.num_pix //2:self.num_pix , self.num_pix-1: 3*self.num_pix//2][::-1,:]
 
@@ -741,6 +887,12 @@ class Fluorescence_2D:
 
 
     def find_next_phi(self, xdata = None, ydata = None, AltReturn = False):
+        """Form a complex number.
+
+        Keyword arguments:
+        real -- the real part (default 0.0)
+        imag -- the imaginary part (default 0.0)
+        """
         # Samples the error function and starts minimization near the minimum
 
         def thetaError(theta):
