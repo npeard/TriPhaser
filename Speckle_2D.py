@@ -6,6 +6,7 @@ import Xtal
 from scipy import optimize
 from itertools import permutations
 from numba import jit
+import numba as nb
 
 
 class Fluorescence_2D:
@@ -67,40 +68,30 @@ class Fluorescence_2D:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        # This is a huge matrix, do not initialize it unless you need it!
-        k1x, k2x, k3x, k1y, k2y, k3y = np.indices(6 * (self.num_pix,))
-        # Check the ordering of elements here
-        q1x = k1x - k2x
-        q1y = k1y - k2y
-        q2x = k2x - k3x
-        q2y = k2y - k3y
-        q1x -= q1x.min()
-        q1y -= q1y.min()
-        q2x -= q2x.min()
-        q2y -= q2y.min()
-        self.weights_4d = np.zeros(4 * (len(self.weights_2d),))
-        np.add.at(self.weights_4d, tuple([q1x,q1y,q2x,q2y]), 1)
+        self.weights_4d = self.compute_weights_4d(num_pix=self.num_pix)
 
-    @jit(nopython=True)
-    def init_weights_4d_explicit(self):
+    @staticmethod
+    @jit(nopython=True, parallel=False)
+    def compute_weights_4d(num_pix=1):
         """Calculate the 4D weights using explicit for-loops.
 
         Keyword arguments:
         None
         """
-        self.weights_4d = np.zeros(4 * (len(self.weights_2d),))
+        weights_4d = np.zeros((2*num_pix-1,2*num_pix-1,2*num_pix-1,2*num_pix-1))
 
-        for k1x in range(self.num_pix):
-            for k2x in range(self.num_pix):
-                for k3x in range(self.num_pix):
-                    for k1y in range(self.num_pix):
-                        for k2y in range(self.num_pix):
-                            for k3y in range(self.num_pix):
-                                q1x = k1x - k2x + self.num_pix - 1
-                                q1y = k1y - k2y + self.num_pix - 1
-                                q2x = k2x - k3x + self.num_pix - 1
-                                q2y = k2y - k3y + self.num_pix - 1
-                                self.weights_4d[q1x, q1y, q2x, q2y] += 1
+        for k1x in range(num_pix):
+            for k2x in range(num_pix):
+                for k3x in range(num_pix):
+                    for k1y in range(num_pix):
+                        for k2y in range(num_pix):
+                            for k3y in range(num_pix):
+                                q1x = k1x - k2x + num_pix - 1
+                                q1y = k1y - k2y + num_pix - 1
+                                q2x = k2x - k3x + num_pix - 1
+                                q2y = k2y - k3y + num_pix - 1
+                                weights_4d[q1x, q1y, q2x, q2y] += 1
+        return weights_4d
 
     def randomize_coords(self):
         """Form a complex number.
