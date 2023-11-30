@@ -223,7 +223,6 @@ class Plot_2D:
         # PLOT THE cosPhi MAP FOR ERROR COMPARISON
         cosPhi_from_structure = self.fluo.cosPhi_from_structure()[1,:,1,:]
         cosPhi_from_data = self.fluo.cosPhi_from_data(num_shots=num_shots)[1,:,1,:]
-        cosPhi_from_fft = self.fluo.cosPhi_fft(num_shots=num_shots)[1,:,1,:]
         cosPhi_from_dataPhase = np.cos(
             self.fluo.phase_from_data(num_shots=num_shots))
         cosPhi_from_dataPhase = ( cosPhi_from_dataPhase[self.fluo.num_pix-1:2*self.fluo.num_pix,self.fluo.num_pix-1:2*self.fluo.num_pix,self.fluo.num_pix-1:2*self.fluo.num_pix,self.fluo.num_pix-1:2*self.fluo.num_pix] + cosPhi_from_dataPhase[0:self.fluo.num_pix,0:self.fluo.num_pix,0:self.fluo.num_pix,0:self.fluo.num_pix][::-1,::-1,::-1,::-1] )[1,:,1,:]/2
@@ -233,11 +232,6 @@ class Plot_2D:
         s = fig.add_subplot(151)
         im = s.imshow(cosPhi_from_data, origin="lower")
         s.set_title("cos(Phi) from Data")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(152)
-        im = s.imshow(cosPhi_from_fft, origin="lower")
-        s.set_title("cos(Phi) from fft")
         P.colorbar(im, ax=s)
 
         s = fig.add_subplot(153)

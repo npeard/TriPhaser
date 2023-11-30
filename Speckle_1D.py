@@ -62,11 +62,8 @@ class Fluorescence_1D:
         return weights_2d
 
     def randomize_coords(self):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+        """Randomize or load atomic coordinates and compute coherent
+        diffraction quantities.
         """
         self.coords = np.random.random((self.num_atoms)) * 2 - 1  # Set spatial extent of real space object here
 
@@ -92,65 +89,64 @@ class Fluorescence_1D:
 
 
     def get_incoh_intens(self):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+        """Get the fluorescence intensity in a single shot.
         """
         return np.abs(np.exp(-1j * (self.kr_product + np.random.random(self.num_atoms))*2*np.pi).mean(1))**2
 
     def get_g2(self, num_shots=1000):
-        """Form a complex number.
+        """Get the second-order correlation function computed from the
+        specified number of incoherent shots.
 
         Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+            num_shots (int) - the number of shots to use when computing the
+            ensemble double correlation function.
         """
+        if self.g2 is not None:
+            return self.g2
+
         print("Performing second-order intensity correlation using outer product...")
         ave_intens = np.zeros(self.num_pix)
         self.g2 = np.zeros(2 * (self.num_pix,))
+
         for i in range(num_shots):
-            #print("Correlating frame ", i)
             incoh = self.get_incoh_intens()
             self.g2 += np.outer(incoh, incoh)
             ave_intens += incoh
-        self.g2 *= (num_shots) / np.outer(ave_intens, ave_intens)
+        self.g2 *= num_shots / np.outer(ave_intens, ave_intens)
         print("Finished correlation...")
         return self.g2
 
     def marginalize_g2(self, num_shots=1000):
-        """Form a complex number.
+        """Reduce the dimensionality of the double correlation by writing it as a function of q instead of k in reciprocal space.
 
         Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+            num_shots (int) - number of shots to compute the correlation
         """
-        if self.g2_1d is None:
-            if self.g2 is None:
-                self.g2 = self.get_g2(num_shots)
-            q_2d = np.subtract.outer(np.arange(self.num_pix), np.arange(self.num_pix))
-            q_2d -= q_2d.min()
-            self.g2_1d = np.zeros_like(self.weights)
-            np.add.at(self.g2_1d, q_2d, self.g2)
-            self.g2_1d = self.g2_1d / self.weights
-            return self.g2_1d
-        else:
+        if self.g2_1d is not None:
             return self.g2_1d
 
+        if self.g2 is None:
+            self.g2 = self.get_g2(num_shots)
+        q_2d = np.subtract.outer(np.arange(self.num_pix), np.arange(self.num_pix))
+        q_2d -= q_2d.min()
+        self.g2_1d = np.zeros_like(self.weights)
+        np.add.at(self.g2_1d, q_2d, self.g2)
+        self.g2_1d = self.g2_1d / self.weights
+        return self.g2_1d
 
     def get_g3(self, num_shots=1000):
-        """Form a complex number.
+        """Compute the third-order correlation function.
 
         Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+            num_shots (int) - number of shots to compute the correlation
         """
+        if self.g3 is not None:
+            return self.g3
+
         print("Performing third-order correlation using outer product...")
         ave_intens = np.zeros(self.num_pix)
         self.g3 = np.zeros(3 * (self.num_pix,))
         for i in range(num_shots):
-            #print("Correlating frame ", i)
             incoh = self.get_incoh_intens()
             self.g3 += np.multiply.outer(np.outer(incoh, incoh), incoh)
             ave_intens += incoh
@@ -159,11 +155,11 @@ class Fluorescence_1D:
         return self.g3
 
     def marginalize_g3(self, num_shots=1000):
-        """Form a complex number.
+        """Reduce the dimensionality of the triple correlation by writing it
+        as a function of q instead of k in reciprocal space.
 
         Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+            num_shots (int) - number of shots to compute the correlation
         """
 
         if self.g3 is None:
@@ -184,11 +180,11 @@ class Fluorescence_1D:
         return self.g3_2d
 
     def closure_from_structure(self, return_phase=False):
-        """Form a complex number.
+        """Compute the closure from the structure coherent diffraction.
 
         Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+            return_phase (bool) - if True, return the closure phase instead
+            of the closure magnitude
         """
         pseudo_coh_ft_double = np.exp(-1j * self.qr_product).sum(1)
         coh_12 = np.multiply.outer(pseudo_coh_ft_double, pseudo_coh_ft_double)
@@ -199,17 +195,19 @@ class Fluorescence_1D:
         if return_phase:
             return np.angle(coh_12 * coh_1plus2)
         else:
+            if self.weights_2d is None:
+                self.init_weights_2d()
             c = 2. * np.real(coh_12 * coh_1plus2)
             c = c / self.num_atoms**3 * (self.weights_2d > 0)
             return c
 
 
     def closure_from_data(self, num_shots=1000):
-        """Form a complex number.
+        """Compute the closure from correlations of incoherent fluorescence
+        data.
 
         Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+            num_shots (int) - number of shots to compute the correlation
         """
         if self.g3_2d is None:
             self.marginalize_g3(num_shots=num_shots)
@@ -231,21 +229,18 @@ class Fluorescence_1D:
 
 
     def cosPhi_from_structure(self):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+        """Get the cosine of the closure phase from the structure coherent
+        diffraction.
         """
         return np.cos(self.closure_from_structure(return_phase=True))
 
 
     def cosPhi_from_data(self, num_shots=1000):
-        """Form a complex number.
+        """Compute the cosine of the closure phase from correlations of
+        incoherent fluorescence data.
 
         Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+            num_shots (int) - number of shots to compute the correlation
         """
         clos = self.closure_from_data(num_shots=num_shots)
         clos = clos / 2

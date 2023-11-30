@@ -12,7 +12,7 @@ import Speckle_1D
 if __name__ == '__main__':
     np.random.seed(0x5EED)
     if len(sys.argv) == 1:
-
+        #print("Do somethign")
         #plot = Plot_1D.Plot_1D(num_atoms=5, num_pix=101, kmax=3)
         #plot.plot_Object()
         #for n in range(3):
@@ -28,16 +28,14 @@ if __name__ == '__main__':
         #plot.plot_simple_PhiSolve(num_shots=1000)
         #plot.learnStructure(num_shots=10000)
 
-        # plot = Plot_2D.Plot_2D(num_pix=11, num_atoms=7, kmax=7, useCrystal =
-        # False, useDFT=False)
-        #plot = Plot_2D.Plot_2D(num_pix=11, num_atoms=3, kmax=2, useCrystal=False, useDFT=False)
-        #plot.plot_Intensities(num_shots=1000)
+        plot = Plot_2D.Plot_2D(num_pix=11, num_atoms=7, kmax=7)
         #plot.plot_Object()
         #for n in range(3):
         #     plot.plot_Shot()
-        #plot.plot_Closure(num_shots=1000, saveMem=False)
-        #plot.plot_ClosurePhase(num_shots=5000, saveMem=False)
-        #plot.plot_cosPhi(num_shots=5000)
+        #plot.plot_Intensities(num_shots=1000)
+        #plot.plot_Closure(num_shots=1000)
+        #plot.plot_ClosurePhase(num_shots=1000)
+        plot.plot_cosPhi(num_shots=1000)
         #plot.plot_PhiSolver(num_shots=10000)
         #plot.plot_PhiSolver_manualSelect(num_shots=1000)
         #plot.learnStructure(num_shots=10000)
