@@ -7,11 +7,13 @@ import Plot_2D
 import PaperFigures
 import timeit
 
+import Speckle_1D
+
 if __name__ == '__main__':
     np.random.seed(0x5EED)
     if len(sys.argv) == 1:
 
-        plot = Plot_1D.Plot_1D(num_atoms=5, num_pix=101, kmax=3)
+        #plot = Plot_1D.Plot_1D(num_atoms=5, num_pix=101, kmax=3)
         #plot.plot_Object()
         #for n in range(3):
         #    plot.plot_Shot()

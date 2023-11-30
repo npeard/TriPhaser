@@ -1,52 +1,65 @@
 #!/usr/bin/env python
 
 import numpy as np
+from numba import jit
 
 class Fluorescence_1D:
     def __init__(self, kmax=10, num_pix=201, num_atoms=4, x=None):
-        """Form a complex number.
+        """Simulate fluorescence speckle from a 1D array of atoms and compute various correlation functions.
 
         Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+            kmax (float) - maximum coordinate in reciprocal space
+            num_pix (int) - number of pixels in reciprocal space, must be an odd number
+            num_atoms (int) - number of atoms in the random array, smaller numbers of atoms lead to less HBT phase noise
+            x (float) - array of user-supplied coordinates to define custom atom array
         """
         self.kmax = kmax
         self.num_pix = num_pix
         self.num_atoms = num_atoms
-        self.x = x
+        self.x = x # User-supplied coordinates
         self.init_system()
 
     def init_system(self):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+        """Initialize arrays and variables, generate atomic array. Some arrays are not initialized on startup to save resources.
         """
+        print("Initializing system...")
         self.k_pix = np.linspace(-self.kmax, self.kmax, self.num_pix)
         self.k_pix_even = np.linspace(-self.kmax, self.kmax, self.num_pix+1)
         self.x_pix = np.linspace(-1, 1, self.num_pix)
         self.x_double_pix = np.linspace(-1,1, 2*self.num_pix-1)
         self.weights = np.correlate(np.ones(self.num_pix), np.ones(self.num_pix), mode = 'full')
         self.q_pix = np.linspace(-2 * self.kmax, 2 * self.kmax, 2 * self.num_pix - 1)
-        if self.x is None:
-            self.init_weights_2d()
+        self.g2 = None
+        self.g3 = None
+        self.g2_1d = None
+        self.g3_2d = None
+        self.weights_2d = None
+
         self.randomize_coords()
 
     def init_weights_2d(self):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
+        """Initialize the 2D weights used to marginalize the 3D triple correlation function.
         """
-        x, y, z = np.indices(3 * (self.num_pix,))
-        q1 = x - y
-        q1 -= q1.min()
-        q2 = y - z
-        q2 -= q2.min()
-        self.weights_2d = np.zeros(2 * (len(self.weights),))
-        np.add.at(self.weights_2d, tuple([q1, q2]), 1)
+        self.weights_2d = self.compute_weights_2d(num_pix=self.num_pix)
+
+    @staticmethod
+    @jit(nopython=True, parallel=False)
+    def compute_weights_2d(num_pix=1):
+        """Calculate the 2D weights using explicit for-loops.
+
+            Keyword arguments:
+                num_pix (int) - the number of pixels, self.num_pix, for the simulation
+            """
+        weights_2d = np.zeros((2*num_pix-1, 2*num_pix-1))
+
+        for k1 in range(num_pix):
+            for k2 in range(num_pix):
+                for k3 in range(num_pix):
+                    q1 = k1 - k2 + num_pix - 1
+                    q2 = k2 - k3 + num_pix - 1
+                    weights_2d[q1, q2] += 1
+
+        return weights_2d
 
     def randomize_coords(self):
         """Form a complex number.
@@ -76,10 +89,6 @@ class Fluorescence_1D:
         self.coh_phase = np.angle(self.coh_ft)
         self.coh_ft_double = np.exp(-1j * self.qr_product*2*np.pi).mean(1)
         self.coh_phase_double = np.angle(self.coh_ft_double)
-        self.g2 = None
-        self.g3 = None
-        self.g2_1d = None
-        self.g3_2d = None
 
 
     def get_incoh_intens(self):
@@ -149,35 +158,6 @@ class Fluorescence_1D:
         print("Finished correlation...")
         return self.g3
 
-
-    def get_g3_fft(self, num_shots=1000):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
-        """
-        print("Performing third-order correlation using FFT...")
-        self.g3_2d = np.zeros(2*(len(self.k_pix),))
-        sum = np.zeros_like(self.g3_2d, dtype=complex)
-
-        q1, q2 = np.indices(2 * (self.num_pix,))
-        q3 = (-q1 - q2) % (self.num_pix)
-        for i in range(num_shots):
-            incoh = self.get_incoh_intens()
-            fft_incoh = np.fft.fft(incoh)
-            BiSpec = fft_incoh[np.newaxis,:] * fft_incoh[:,np.newaxis] * fft_incoh[q3]
-            add = np.fft.ifft2(BiSpec)
-            sum += add
-
-        sum = np.fft.fftshift(sum)
-        self.g3_2d = np.real(sum[::-1, :])
-        # Normalize to match outer product method
-        self.g3_2d /= num_shots/self.num_atoms**3
-        self.g3_2d /= self.num_pix
-        print("Finished correlation...")
-        return self.g3_2d
-
     def marginalize_g3(self, num_shots=1000):
         """Form a complex number.
 
@@ -197,6 +177,8 @@ class Fluorescence_1D:
         q2 -= q2.min()
 
         np.add.at(self.g3_2d, tuple([q1, q2]), self.g3)
+        if self.weights_2d is None:
+            self.init_weights_2d()
         self.g3_2d[self.weights_2d > 0] /= self.weights_2d[self.weights_2d > 0]
 
         return self.g3_2d
