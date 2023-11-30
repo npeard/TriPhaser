@@ -157,13 +157,13 @@ class Plot_1D:
         P.show()
 
     def plot_simple_PhiSolve(self, num_shots = 1000):
-        from skimage.restoration import unwrap_phase
         cosPhi = self.fluo.cosPhi_from_data(num_shots=num_shots)
         initial_phase = self.fluo.coh_phase_double[self.num_pix - 1:3 *
                                                                self.num_pix
                                                                // 2][1]
         solved = TriPhase_1D.simple_PhiSolver(cosPhi,
                                               initial_phase=initial_phase)
+        from skimage.restoration import unwrap_phase
         solved = unwrap_phase(solved)
         real_phase = self.fluo.coh_phase[self.fluo.num_pix//2:]
         real_phase = unwrap_phase(real_phase)
@@ -183,65 +183,29 @@ class Plot_1D:
 
 
     def plot_PhiSolver(self, num_shots=10000):
-        from skimage.restoration import unwrap_phase
-        solved, error = self.fluo.PhiSolver(num_shots=num_shots)
-        #real_phase = self.fluo.coh_phase_double[self.fluo.num_pix - 1:3 * self.fluo.num_pix // 2]
+        cosPhi = self.fluo.cosPhi_from_data(num_shots=num_shots)
+        initial_phase = self.fluo.coh_phase_double[self.num_pix - 1:3 *
+                                                                    self.num_pix
+                                                                    // 2][1]
+        solved, error = TriPhase_1D.PhiSolver(cosPhi,
+                                              initial_phase=initial_phase)
         real_phase = self.fluo.coh_phase_double[self.fluo.num_pix - 1:]
-        cosPhi_from_structure = self.fluo.cosPhi_from_structure()
-
 
         # Unwrap the phase
-        plot_solved = unwrap_phase(solved[:]) #np.unwrap(solved[:,branch], axis=0)
-        plot_real_phase = unwrap_phase(real_phase) #np.unwrap(real_phase, axis=0)
-        # Plot each branch with the real phase and the Phi that was used to acquire it plus the Phi from solved
-        fig = P.figure(figsize=(12,8))
+        from skimage.restoration import unwrap_phase
+        plot_solved = unwrap_phase(solved[:])
+        plot_real_phase = unwrap_phase(real_phase)
 
-        # Plot cosPhi from solved
-        s = fig.add_subplot(231)
-        phase = plot_solved
-        #Phi = np.zeros((self.fluo.num_pix // 2 + 1, self.fluo.num_pix // 2 + 1))
-        Phi = np.zeros((self.fluo.num_pix, self.fluo.num_pix))
-        for n in range(self.fluo.num_pix // 2 + 1):
-            Phi[n, :] = (np.abs(np.roll(phase, -n) - phase - phase[n]))
-        Phi = Phi[:self.fluo.num_pix // 2 + 1, :self.fluo.num_pix // 2 + 1]
-        im = s.imshow(np.cos(Phi), origin='lower')
-        s.set_title("cos(Phi) from Solved")
-        P.colorbar(im, ax=s)
-        P.tight_layout()
-
+        fig = P.figure(figsize=(5,5))
         # Plot the solved phase branch
-        s = fig.add_subplot(232)
-        plot_1 = P.plot(np.linspace(0, len(real_phase), len(real_phase)), plot_real_phase, 'o--', label='Exact')
-        plot_2 = P.plot(np.linspace(0, len(real_phase), len(real_phase)), plot_solved, label='Solved')
-        plot_3 = P.plot(np.linspace(0, len(real_phase), len(real_phase)), np.cos(plot_real_phase-plot_solved), label = 'cos(Diff)')
+        s = fig.add_subplot(111)
+        P.plot(np.linspace(0, len(real_phase), len(real_phase)),
+               plot_real_phase, 'o--', label='Exact')
+        P.plot(np.linspace(0, len(real_phase), len(real_phase)),
+               plot_solved, label='Solved')
+        P.plot(np.linspace(0, len(real_phase), len(real_phase)),
+               np.cos(plot_real_phase-plot_solved), label = 'cos(Diff)')
         P.legend()
-
-        # Plot difference between cosPhi from solved and cosPhi from structure
-        s = fig.add_subplot(233)
-        im = s.imshow(np.cos(Phi) - cosPhi_from_structure, origin='lower')#, vmin = -0.05, vmax=0.05)
-        s.set_title("Difference (Solved-Structure)")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(234)
-        s.plot(np.linspace(0, len(real_phase), len(real_phase)), error)
-        s.set_title("Error")
-
-        # # Use plots from plot_cosPhi to see the difference map
-        # s = fig.add_subplot(234)
-        # im = s.imshow(input_cosPhi, origin="lower")
-        # s.set_title("Input cos(Phi)")
-        # P.colorbar(im, ax=s)
-        #
-        # s = fig.add_subplot(235)
-        # im = s.imshow(cosPhi_from_structure, origin="lower")
-        # s.set_title("cos(Phi) from Structure")
-        # P.colorbar(im, ax=s)
-        # P.tight_layout()
-        #
-        # s = fig.add_subplot(236)
-        # im = s.imshow(input_cosPhi - cosPhi_from_structure, origin="lower")#, vmin = -0.05, vmax=0.05)
-        # s.set_title("Difference (Input-Structure)")
-        # P.colorbar(im, ax=s)
         P.tight_layout()
         P.show()
 

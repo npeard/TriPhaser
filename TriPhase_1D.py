@@ -41,7 +41,8 @@ def simple_PhiSolver(cosPhi, initial_phase=0):
 
 def PhiSolver(cosPhi, initial_phase=0):
 	"""Solves the phase for a given cosPhi from data and guesstimate of the
-	first phase value.
+	first phase value. Uses all rows of Phi to solve the sign problem and
+	obtain the correct phase slope.
 
 	Keyword arguments:
 		cosPhi (float) - 2D NumPy array, 2*num_pix-1 to an edge, contains the
