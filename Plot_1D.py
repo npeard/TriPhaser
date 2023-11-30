@@ -4,7 +4,7 @@ import numpy as np
 import pylab as P
 import Speckle_1D
 from scipy import optimize
-from skimage.restoration import unwrap_phase
+import TriPhase_1D
 
 class Plot_1D:
     def __init__(self, num_atoms=5, num_pix=201, kmax=10):
@@ -158,7 +158,12 @@ class Plot_1D:
 
     def plot_simple_PhiSolve(self, num_shots = 1000):
         from skimage.restoration import unwrap_phase
-        solved = self.fluo.simple_PhiSolver(num_shots=num_shots)
+        cosPhi = self.fluo.cosPhi_from_data(num_shots=num_shots)
+        initial_phase = self.fluo.coh_phase_double[self.num_pix - 1:3 *
+                                                               self.num_pix
+                                                               // 2][1]
+        solved = TriPhase_1D.simple_PhiSolver(cosPhi,
+                                              initial_phase=initial_phase)
         solved = unwrap_phase(solved)
         real_phase = self.fluo.coh_phase[self.fluo.num_pix//2:]
         real_phase = unwrap_phase(real_phase)
@@ -166,8 +171,10 @@ class Plot_1D:
         fig = P.figure(figsize=(7, 7))
         # Plot the solved phase branch
         s = fig.add_subplot(111)
-        plot_1 = P.plot(np.linspace(0, len(real_phase), len(real_phase)), real_phase, label='Exact')
-        plot_2 = P.plot(np.linspace(0, len(solved), len(solved)), solved, 'o--',label=r'$\Phi = |\Phi|$')
+        P.plot(np.linspace(0, len(real_phase), len(real_phase)),
+               real_phase, label='Exact')
+        P.plot(np.linspace(0, len(solved), len(solved)), solved,
+               'o--',label=r'$\Phi = |\Phi|$')
         s.set_ylabel(r'$\phi$')
         s.set_xlabel("Pixel Index")
         P.legend()
