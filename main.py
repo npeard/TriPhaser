@@ -22,7 +22,7 @@ if __name__ == '__main__':
         #plot.plot_cosPhi(num_shots=100000)
         #plot.plot_Closure(num_shots=1000)
         #plot.plot_ClosurePhase(num_shots=1000)
-        plot.plot_PhiSolver(num_shots=10000)
+        #plot.plot_PhiSolver(num_shots=10000)
         #plot.plot_simple_PhiSolve(num_shots=1000)
         #plot.learnStructure(num_shots=10000)
 

@@ -135,11 +135,15 @@ def PhiSolver(cosPhi, initial_phase=0):
 	return solved, error
 
 def find_next_phi(xdata=None, ydata=None, AltReturn=False):
-	"""Form a complex number.
+	"""Finds the nearest intersection of sets of possible theta by finding
+	the pairs of vertical and horizontal lines that best fit the data when
+	plotted as ordered pairs in the xy-plane.
 
 	Keyword arguments:
-	real -- the real part (default 0.0)
-	imag -- the imaginary part (default 0.0)
+		xdata (float) - cosine of the candidate theta value array
+		ydata (float) - sine of the candidate theta value array
+		AltReturn (bool) - when True, returns the alternate (less optimal)
+		value of theta that fits the data
 	"""
 
 	# Samples the error function and starts minimization near the minimum
@@ -148,17 +152,14 @@ def find_next_phi(xdata=None, ydata=None, AltReturn=False):
 			np.minimum((np.add.outer(xdata, -np.cos(theta)))**2,
 					   (np.add.outer(ydata, -np.sin(theta)))**2).sum(0))
 
-	def ABError(AB):
-		return np.log(
-			np.minimum((np.add.outer(xdata, -AB[0, :, :]))**2,
-					   (np.add.outer(ydata, -AB[1, :, :]))**2).sum(0))
-
 	def opt_func(theta):
 		if np.abs(theta) > np.pi:
 			return 1e10
 		else:
 			return np.log(np.sum(np.minimum((xdata - np.cos(theta))**2,
 											(ydata - np.sin(theta))**2)))
+
+	# Find candidate theta by doing brute force search of the 1D parameter space
 	theta = np.linspace(-np.pi, np.pi, 50000)
 	logThetaError = logThetaError(theta)
 	num_theta = 2  # Number of candidates to accept. Two is optimal.
@@ -192,6 +193,16 @@ def find_next_phi(xdata=None, ydata=None, AltReturn=False):
 
 def append_to_h5file(image_stack, cosPhi_marginal, phase,
 					 filename="data.h5"):
+	"""Appends training data consisting of an image stack, the associated
+	marginalized cosPhi, and the structure phase to a file.
+
+	Keyword arguments:
+		image_stack (float) - the stack of square detector images
+		cosPhi_marginal (float) - the computed marginalized cosPhi array
+		phase (float) - the target phase for the structure
+		filename (string) - the output HDF5 file where the data is to be
+		appended
+	"""
 	with h5py.File(filename, 'a') as f:
 		# Create datasets if they don't exist, otherwise append data
 		if "image_stack" in f.keys():
@@ -224,25 +235,34 @@ def append_to_h5file(image_stack, cosPhi_marginal, phase,
 		if "phase" in f.keys():
 			f["phase"].resize((f["phase"].shape[0] + 1),
 									 axis=0)
-			new_data = np.expand_dims(phase_target, axis=0)
+			new_data = np.expand_dims(phase, axis=0)
 			f["phase"][-1:] = new_data
 		else:
 			f.create_dataset("phase",
-							 data=np.expand_dims(phase_target, axis=0),
-							 maxshape=(None, phase_target.shape[0]),
+							 data=np.expand_dims(phase, axis=0),
+							 maxshape=(None, phase.shape[0]),
 							 compression="gzip", compression_opts=9,
 							 chunks=True)
 
-def export_training_data(num_data=1000,
+def generate_training_data(num_data=1000,
 						 file="/Users/nolanpeard/Desktop/test2.h5",
 						 image_stack_depth = 1):
+	"""Generates training data and writes it to a file.
+
+	Keyword arguments:
+		num_data (int) - the number of data and label pairs to generate and
+		export
+		file (string) - the file path where the data is to be exported
+		image_stack_depth (int) - the number of images that should be
+		generated per stack in each data/label set
+		"""
 	for _ in range(num_data):
 		fluo = Speckle_1D.Fluorescence_1D(kmax=2, num_pix=51,
 										  num_atoms=np.random.random_integers(3,
 																			  high=10))
 		phase_target = fluo.coh_phase_double
-		cosPhi_from_dataPhase = np.cos(fluo.phase_from_data(
-			num_shots=1000))
+		cosPhi_from_dataPhase = fluo.cosPhi_from_data(
+			num_shots=1000)
 		image_stack = np.zeros((image_stack_depth, 51, 51))
 		for i in range(image_stack_depth):
 			image_stack[i] = fluo.get_incoh_intens()
@@ -254,8 +274,8 @@ def export_training_data(num_data=1000,
 	with h5py.File(file, 'r') as f:
 		image_stack_data = f["image_stack"][:]
 		cosPhi_marginal_data = f["cosPhi_marginal"][:]
-		phase_target_data = f["phase_target"][:]
+		phase_data = f["phase"][:]
 
 	print("image_stack_data: ", image_stack_data.shape)
 	print("cosPhi_marginal_data: ", cosPhi_marginal_data.shape)
-	print("phase_target_data: ", phase_target_data.shape)
+	print("phase_data: ", phase_data.shape)
