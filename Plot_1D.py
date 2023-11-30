@@ -7,11 +7,10 @@ from scipy import optimize
 from skimage.restoration import unwrap_phase
 
 class Plot_1D:
-    def __init__(self, num_atoms=5, num_pix=201, kmax = 10, useDFT = False):
+    def __init__(self, num_atoms=5, num_pix=201, kmax=10):
         self.num_atoms = num_atoms
         self.num_pix = num_pix
         self.kmax = kmax
-        self.useDFT = useDFT
         self.fluo = Speckle_1D.Fluorescence_1D(kmax=self.kmax,
                                                num_pix=self.num_pix,
                                                num_atoms=self.num_atoms)
@@ -46,7 +45,7 @@ class Plot_1D:
         # PLOT DETECTOR INTENSITIES, SINGLE SHOT
         P.plot(self.fluo.k_pix, np.abs(self.fluo.coh_ft)**2)
         P.plot(self.fluo.k_pix, self.fluo.get_incoh_intens())
-        P.title("Single Shot Field Intensity at Detector")
+        P.title("Single Shot Intensity at Detector")
         P.legend(("Coherent Intensity", "Incoherent (Fluorescence) Intensity"))
         P.tight_layout()
         P.show()
@@ -58,10 +57,8 @@ class Plot_1D:
         P.plot(self.fluo.k_pix, np.abs(self.fluo.coh_ft)**2, label='True Intensity')
         g2 = self.fluo.marginalize_g2(num_shots=num_shots)
         measured = (g2 - 1 + 1. / self.fluo.num_atoms)
-        P.plot(self.fluo.q_pix, measured, 'o--', label='Intensity Measured via g2 (Outer Product)')
-
-        g1sq_fft = self.fluo.g2_fft(num_shots=num_shots) - 1 + 1/self.fluo.num_atoms
-        P.plot(self.fluo.q_pix, g1sq_fft, label="Intensity Measured via g2 (FFT Convolution)")
+        P.plot(self.fluo.q_pix, measured, 'o--',
+               label=r'Intensity Computed via $g^2$')
 
         incoh_sum = np.zeros_like(self.fluo.k_pix)
         for n in range(num_shots):
@@ -77,57 +74,6 @@ class Plot_1D:
         P.show()
 
 
-    def plot_Intensity_Error(self, min_atoms = 3, max_atoms = 500, num_molecules = 100, num_shots=1000, num_pix = 251, appendNew = False):
-        # Plots the relative error for num_molecules atom configurations for each number of atoms up to max_atoms using num_shots shots in each trial against the number of atoms
-        # This is meant to show that the "phase error" increases as the number of atoms is increased
-
-        file = '/Users/nolanpeard/Desktop/G2_SquareRelativeError_251pix_1000shot.dat'
-        skip = 1
-        steps = (max_atoms-2)//skip
-        atom_num = np.linspace(min_atoms,max_atoms,steps).astype(int)
-        plot_error = np.zeros((steps,2*num_pix-1))
-
-        if appendNew:
-            # Append new data to file
-            for m in range(steps):
-                print("Collecting intensity errors for ...", atom_num[m], "atoms")
-                rel_diff = np.zeros((num_molecules, 2*num_pix-1))
-                with open(file, 'a') as f:
-                    for n in range(num_molecules):
-                        temp_fluo = Speckle_1D.Fluorescence_1D(num_pix=num_pix,
-                                                               num_atoms=
-                                                               atom_num[m])
-                        true_intens = np.abs(temp_fluo.coh_ft_double)**2
-                        g2 = temp_fluo.marginalize_g2(num_shots=num_shots)
-                        g2_intens = g2 - 1 + 1/atom_num[m]
-                        rel_diff[n,:] = (true_intens-g2_intens)**2/true_intens**2
-                    #error[m,:] = rel_diff.mean(0)
-                    # Insert number of atoms in front of pixel data for each row
-                    rel_diff = np.hstack((atom_num[m]*np.ones((rel_diff.shape[0], 1), dtype=rel_diff.dtype), rel_diff))
-                    # Save to file
-                    np.savetxt(f, rel_diff, delimiter='\t', newline='\n')
-
-        # Create figure from file
-        data = np.loadtxt(file, delimiter='\t')
-        for m in range(steps):
-            # Remove the first column which labels the number of atoms and then operate on the pixel data for each atom number
-            plot_error[m,:] = (data[ data[:,0] == atom_num[m] ,:])[:,1:].mean(0)
-        fig = P.figure()
-        ax1 = fig.add_subplot(211)
-        ax1.imshow( np.log(plot_error), cmap='gray', interpolation='nearest', extent=[-num_pix+1,num_pix-1,np.max(atom_num), np.min(atom_num)], aspect='auto', vmax=10,vmin=0)
-        P.title(r'$\ln(\sigma^2/I^2)$')
-        ax1.set_xlabel("Pixel Number")
-        ax1.set_ylabel("Number of Atoms")
-
-        ax2 = fig.add_subplot(212)
-        ax2.plot(atom_num, np.log(plot_error.sum(1)) )
-        ax2.set_xlabel("Number of Atoms")
-        ax2.set_ylabel(r'$\ln(\sum_i \sigma_i^2/I_i^2)$')
-        #P.legend()
-        P.tight_layout()
-        P.show()
-
-
     def plot_g2(self, num_shots=10000):
         g2 = self.fluo.get_g2(num_shots=num_shots)
         P.imshow(g2, cmap='gray', origin='lower')
@@ -138,31 +84,18 @@ class Plot_1D:
 
     def plot_g3(self, num_shots=10000):
         # Compare g3 from outer product and FFT convolution
-        fig = P.figure(figsize=(15, 5))
-        ax1 = fig.add_subplot(131)
+        fig = P.figure(figsize=(5, 5))
+        ax1 = fig.add_subplot(111)
         ax1.set_title(("Outer Product g3"))
-        g3_outer = self.fluo.marginalize_g3(num_shots=num_shots)
-        g3_outer_reduced = g3_outer[self.fluo.num_pix//2:3*self.fluo.num_pix//2,self.fluo.num_pix//2:3*self.fluo.num_pix//2]
-        im = ax1.imshow(g3_outer)
+        g3 = self.fluo.marginalize_g3(num_shots=num_shots)
+        im = ax1.imshow(g3)
         P.colorbar(im, ax=ax1)
-
-        ax2 = fig.add_subplot(132)
-        ax2.set_title(("Bispectrum g3"))
-        g3_fft = self.fluo.marginalize_g3(num_shots=num_shots)
-        im = ax2.imshow(g3_fft)
-        P.colorbar(im, ax=ax2)
-
-        ax3 = fig.add_subplot(133)
-        ax3.set_title(("Difference"))
-        diff = g3_fft - g3_outer_reduced
-        im = ax3.imshow(diff)
-        P.colorbar(im, ax=ax3)
 
         P.tight_layout()
         P.show()
 
 
-    def plot_Closure(self, num_shots=10000, saveMem = False):
+    def plot_Closure(self, num_shots=10000):
         # PLOT THE CLOSURES AND THEIR DIFFERENCE
         fig = P.figure(figsize=(15, 5))
         cdata = self.fluo.closure_from_data(num_shots=num_shots)
@@ -178,8 +111,6 @@ class Plot_1D:
         P.colorbar(im, ax=s)
 
         s = fig.add_subplot(133)
-        if saveMem:
-            cstruct = cstruct[self.fluo.num_pix // 2:3 * self.fluo.num_pix // 2, self.fluo.num_pix // 2:3 * self.fluo.num_pix // 2]
         im = s.imshow(cdata - cstruct)
         s.set_title("Difference")
         P.colorbar(im, ax=s)
@@ -187,7 +118,7 @@ class Plot_1D:
         P.show()
 
 
-    def plot_ClosurePhase(self, num_shots=10000, saveMem = False):
+    def plot_ClosurePhase(self, num_shots=10000):
         # PLOT THE PHASE MAP IN K-SPACE
         fig = P.figure(figsize=(10, 5))
         s = fig.add_subplot(121)
@@ -196,8 +127,8 @@ class Plot_1D:
         P.colorbar(im, ax=s)
 
         s = fig.add_subplot(122)
-        #im = s.imshow(np.abs(self.fluo.phase_from_structure()))
         im = s.imshow(np.arccos(self.fluo.cosPhi_from_structure()))
+        im = s.imshow(np.abs(self.fluo.phase_from_structure()))
         s.set_title("Phase from Structure")
         P.colorbar(im, ax=s)
         P.tight_layout()
@@ -206,113 +137,22 @@ class Plot_1D:
 
     def plot_cosPhi(self, num_shots=10000):
         # PLOT THE cosPhi MAP FOR ERROR COMPARISON
-        cosPhi_from_structure = self.fluo.cosPhi_from_structure()
-        cosPhi_from_data = self.fluo.cosPhi_from_data(num_shots=num_shots)
-        cosPhi_from_fft = self.fluo.cosPhi_fft(num_shots=num_shots)
-        cosPhi_from_dataPhase = np.cos(
-            self.fluo.phase_from_data(num_shots=num_shots))
+        cosPhi_from_dataPhase = self.fluo.cosPhi_from_data(num_shots=num_shots)
         cosPhi_from_dataPhase = (cosPhi_from_dataPhase[self.fluo.num_pix-1:3*self.fluo.num_pix//2,self.fluo.num_pix-1:3*self.fluo.num_pix//2] + cosPhi_from_dataPhase[self.fluo.num_pix//2:self.fluo.num_pix, self.fluo.num_pix//2:self.fluo.num_pix][::-1,::-1])/2  # Averaging data from both sides of the central axis
-        cosPhi_from_structurePhase = np.cos(self.fluo.phase_from_structure())[self.fluo.num_pix-1:,self.fluo.num_pix-1:]
-        #cosPhi_from_g3slice = self.fluo.cosPhi_from_g3Slice(num_shots=num_shots)
-        #g3= self.fluo.get_g3(num_shots=num_shots)[:, ::-1, self.fluo.num_pix // 2]
+        cosPhi_from_structurePhase = self.fluo.cosPhi_from_structure()[
+        self.fluo.num_pix-1:,self.fluo.num_pix-1:]
 
-        fig = P.figure(figsize=(20, 10))
-        s = fig.add_subplot(251)
-        im = s.imshow(cosPhi_from_data, origin="lower")
-        s.set_title("cos(Phi) from Data")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(252)
-        im = s.imshow(cosPhi_from_fft, origin="lower")
-        s.set_title("cos(Phi) from FFT")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(253)
-        im = s.imshow(cosPhi_from_structure, origin="lower")
-        s.set_title("cos(Phi) from Structure")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(254)
+        fig = P.figure(figsize=(8, 4))
+        s = fig.add_subplot(121)
         im = s.imshow(cosPhi_from_dataPhase, origin="lower")
         s.set_title("cosPhi from phase_from_data")
         P.colorbar(im, ax=s)
 
-        s = fig.add_subplot(255)
+        s = fig.add_subplot(122)
         im = s.imshow(cosPhi_from_structurePhase, origin="lower")
         s.set_title("cosPhi from phase_from_structure")
         P.colorbar(im, ax=s)
 
-        s = fig.add_subplot(256)
-        im = s.imshow(cosPhi_from_data - cosPhi_from_structure, origin="lower")
-        s.set_title("cosPhi from Data - cosPhi from Structure")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(257)
-        im = s.imshow(cosPhi_from_fft - cosPhi_from_structure, origin="lower")
-        s.set_title("cosPhi from FFT - cosPhi from Structure")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(258)
-        im = s.imshow(cosPhi_from_structure - cosPhi_from_structure, origin="lower")
-        s.set_title("cosPhi from Structure - cosPhi from Structure")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(259)
-        im = s.imshow(cosPhi_from_dataPhase - cosPhi_from_structure, origin="lower")
-        s.set_title("cosPhi from phase_from_data - cosPhi from Structure")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(2,5,10)
-        im = s.imshow(cosPhi_from_structurePhase , origin="lower")
-        s.set_title("cosPhi from phase_from_structure ")
-        P.colorbar(im, ax=s)
-
-        P.tight_layout()
-        P.show()
-
-
-    def plot_cosPhi_Error(self, min_atoms = 3, max_atoms = 10, num_molecules = 50, num_shots=10000, num_pix = 251, appendNew = False):
-        # This is meant to show the problem with the "phase noise" greatly increasing the error
-        cosPhi_from_data = self.fluo.cosPhi_from_data(num_shots=num_shots)
-        cosPhi_from_structure = self.fluo.cosPhi_from_structure()
-
-        file = '/Users/nolanpeard/Desktop/G3_CosPhi_RelativeError_251pix_10000shot.dat'
-        skip = 1
-        steps = (max_atoms - 2) // skip
-        atom_num = np.linspace(min_atoms, max_atoms, steps).astype(int)
-        plot_error = np.zeros((steps))
-
-        if appendNew:
-            # Append new data to file
-            for m in range(steps):
-                print("Collecting cosPhi errors for ...", atom_num[m], "atoms")
-                rel_diff = np.zeros((num_molecules))
-                with open(file, 'a') as f:
-                    for n in range(num_molecules):
-                        temp_fluo = Speckle_1D.Fluorescence_1D(num_pix=num_pix,
-                                                               num_atoms=
-                                                               atom_num[m])
-                        cosPhi_from_structure = temp_fluo.cosPhi_from_structure()
-                        cosPhi_from_data = temp_fluo.cosPhi_from_data(num_shots=num_shots)
-                        rel_diff[n] = np.sum( (cosPhi_from_structure - cosPhi_from_data)**2 / cosPhi_from_structure**2 )
-                    # error[m,:] = rel_diff.mean(0)
-                    # Insert number of atoms in front of pixel data for each row
-                    rel_diff = np.vstack((atom_num[m] * np.ones((rel_diff.shape[0]), dtype=rel_diff.dtype), rel_diff))
-                    rel_diff = rel_diff.T
-                    # Save to file
-                    np.savetxt(f, rel_diff, delimiter='\t', newline='\n')
-
-        # Create figure from file
-        data = np.loadtxt(file, delimiter='\t')
-        for m in range(steps):
-            # Remove the first column which labels the number of atoms and then operate on the pixel data for each atom number
-            plot_error[m] = (data[data[:, 0] == atom_num[m], :])[:, 1:].mean(0)
-        fig = P.figure()
-        ax2 = fig.add_subplot(111)
-        ax2.plot(atom_num, np.log(plot_error))
-        ax2.set_xlabel("Number of Atoms")
-        ax2.set_ylabel(r'$\ln(\sum_{i,j} \sigma_{i,j}^2/I_{i,j}^2)$')
-        # P.legend()
         P.tight_layout()
         P.show()
 

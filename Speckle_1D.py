@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
 import numpy as np
-import scipy.signal
-from scipy import optimize
-
-
 
 class Fluorescence_1D:
     def __init__(self, kmax=10, num_pix=201, num_atoms=4, x=None):
@@ -182,7 +178,6 @@ class Fluorescence_1D:
         print("Finished correlation...")
         return self.g3_2d
 
-
     def marginalize_g3(self, num_shots=1000):
         """Form a complex number.
 
@@ -234,8 +229,8 @@ class Fluorescence_1D:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        #if self.g3_2d is None:
-        self.marginalize_g3(num_shots=num_shots)
+        if self.g3_2d is None:
+            self.marginalize_g3(num_shots=num_shots)
         if self.g2_1d is None:
             self.marginalize_g2(num_shots=num_shots)
 
@@ -253,17 +248,17 @@ class Fluorescence_1D:
         return c
 
 
-    def phase_from_structure(self):
+    def cosPhi_from_structure(self):
         """Form a complex number.
 
         Keyword arguments:
         real -- the real part (default 0.0)
         imag -- the imaginary part (default 0.0)
         """
-        return self.closure_from_structure(return_phase=True)
+        return np.cos(self.closure_from_structure(return_phase=True))
 
 
-    def phase_from_data(self, num_shots=1000):
+    def cosPhi_from_data(self, num_shots=1000):
         """Form a complex number.
 
         Keyword arguments:
@@ -285,78 +280,7 @@ class Fluorescence_1D:
         clos = clos / (np.multiply.outer(g1, g1) * g1[q12])
         clos[np.abs(clos) > 1] = np.sign(clos[np.abs(clos) > 1])
 
-        phase = np.arccos(clos)
-
-        return phase
-
-    def cosPhi_from_structure(self):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
-        """
-        real_phase = self.coh_phase_double[self.num_pix - 1:]
-        Phi = np.zeros((self.num_pix, self.num_pix))
-        for n in range(self.num_pix):
-            Phi[n, :] = (np.abs(np.roll(real_phase, -n) - real_phase - real_phase[n]))
-        Phi = Phi[:self.num_pix // 2 + 1, :self.num_pix // 2 + 1]
-
-        return np.cos(Phi)
-
-    def cosPhi_from_data(self, num_shots=1000):
-        """Form a complex number.
-
-        Keyword arguments:
-        real -- the real part (default 0.0)
-        imag -- the imaginary part (default 0.0)
-        """
-        idx1 = self.num_pix // 2
-        idx2 = np.arange(self.num_pix//2+1)[::-1]
-
-        # Calculate intensity pattern from g2
-        g1sq = self.marginalize_g2(num_shots=num_shots) - 1. + 1. / self.num_atoms
-        g1sq[g1sq < 0] = 0.0000000001  # It still comes out negative for some reason occasionally, correcting here for now
-        g1sq_reduced = g1sq[self.num_pix // 2:3 * self.num_pix // 2]  # Always > 0
-        g1_reduced = np.sqrt(g1sq_reduced)
-        g1 = np.sqrt(g1sq)
-
-        # Calculate slice of g3
-        g3 = np.zeros((self.num_pix//2+1,self.num_pix))
-        ave_intens = np.zeros(self.num_pix)
-        for i in range(num_shots):
-            incoh = self.get_incoh_intens()
-            g3 += np.multiply.outer(incoh[idx2], incoh) * incoh[idx1]
-            ave_intens += incoh
-        g3 *= num_shots**2 / (ave_intens[idx1] * np.multiply.outer(ave_intens[idx2], ave_intens))
-        g3 = g3[:,self.num_pix//2:]
-        n = self.num_atoms
-        #return g3
-
-        # Calculate cos(Phi)
-        #ones = np.ones(self.num_pix//2+1)
-        #exp1 = np.multiply.outer(ones, g1sq_reduced[idx2])
-        exp1 = g1sq_reduced[idx2][:, np.newaxis]
-        idx_test = np.add.outer(np.arange(self.num_pix//2+1), np.arange(self.num_pix//2+1))
-        exp2 = g1sq[idx_test+self.num_pix-1]
-        #exp3 = np.multiply.outer(g1sq_reduced[idx2],ones)
-        exp3 = g1sq_reduced[idx2][np.newaxis, :]
-        cosPhi = g3 - (1 - 3 / n + 4 / n**2) - (1 - 2 / n) * (exp1 + exp2 + exp3)
-
-        #exp4 = np.multiply.outer(ones, g1_reduced[idx2])
-        exp4 = g1_reduced[idx2][:, np.newaxis]
-        exp5 = g1[idx_test+self.num_pix-1]
-        #exp6 = np.multiply.outer(g1_reduced[idx2],ones)
-        exp6 = g1_reduced[idx2][np.newaxis, :]
-        cosPhi /= 2 * exp4 * exp5 * exp6
-
-        # ENFORCE SYMMETRY?
-        # Is it better to enforce symmetry or extend PhiSolver algorithm to sample the entire Phi map and then average the calculated phases?
-        cosPhi = (cosPhi + cosPhi.T)/2
-
-        # RANGE CORRECTION
-        cosPhi[cosPhi > 1] = 1
-        cosPhi[cosPhi < -1] = -1
+        cosPhi = clos
 
         return cosPhi
 

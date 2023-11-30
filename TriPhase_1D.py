@@ -1,0 +1,249 @@
+#!/usr/bin/env python
+
+import numpy as np
+from scipy import optimize
+import h5py
+import Speckle_1D
+
+def PhiSolver(cosPhi, initial_phase=0):
+	"""Solves the phase for a given cosPhi from data and guesstimate of the
+	first phase value.
+
+	Keyword arguments:
+		cosPhi (float) - 2D NumPy array, 2*num_pix-1 to an edge, contains the
+		phase information to be retrieved. Usually should be computed using
+		the cosine of "phase_from_data" method or the "cosPhi_from_structure"
+		method in the Fluorescence_1D class
+
+		initial_phase (float) - estimated value of the first pixel of phase
+		to be retrieved. Accuracy of this estimate determines fidelity of
+		phase retrieval.
+	"""
+	cosPhi_from_dataPhase = np.cos(
+		self.phase_from_data(num_shots=num_shots))
+	cosPhi_from_dataPhase = (cosPhi_from_dataPhase[
+							 self.num_pix - 1:3 * self.num_pix // 2,
+							 self.num_pix - 1:3 * self.num_pix // 2] + cosPhi_from_dataPhase[
+																	   self.num_pix // 2:self.num_pix,
+																	   self.num_pix // 2:self.num_pix][
+																	   ::-1,
+																	   ::-1]) / 2
+	cosPhi = cosPhi_from_dataPhase
+	# cosPhi = self.cosPhi_from_structure()
+	Phi = np.arccos(cosPhi)
+
+	# PHI SOLVER ALGORITHM
+	# Initial conditions
+	solved = np.zeros(self.num_pix)
+	error = np.zeros_like(solved)
+	real_phase = self.coh_phase_double[self.num_pix - 1:3 * self.num_pix // 2]
+	solved[1] = real_phase[1]
+
+	# Find phi out to KMAX
+	error_threshold = 10
+	n = 1
+	useAlt = False
+	while n < self.num_pix // 2:
+		print("Pixel", n)
+		branches = np.zeros((int((n + 3) / 2) - 1, 2))
+		for m in range(1, int((n + 3) / 2), 1):
+			plus = Phi[n - m + 1, m] + solved[n - m + 1] + solved[m]
+			minus = -Phi[n - m + 1, m] + solved[n - m + 1] + solved[m]
+			branches[m - 1, 0] = plus
+			branches[m - 1, 1] = minus
+
+		theta1 = np.append(branches[:, 0], branches[:, 1])
+		theta2 = np.append(branches[:, 1], branches[:, 0])
+		xdata = np.cos(theta1)
+		ydata = np.sin(theta2)
+
+		next_phi, error_val = self.find_next_phi(xdata=xdata, ydata=ydata,
+												 AltReturn=useAlt)
+		solved[n + 1] = next_phi
+		error[n + 1] = error_val
+
+		if error[n + 1] - error[n] > error_threshold:
+			n -= 1
+			useAlt = True
+		else:
+			useAlt = False
+			n += 1
+
+	# Find phi out to QMAX
+	error_threshold = 10
+	n = 0
+	# for n in range(0, self.num_pix//2, 1):
+	print("QMAX LOOP")
+	while n < self.num_pix // 2:
+		print("Pixel", n + self.num_pix // 2)
+		branches = np.zeros((int((self.num_pix // 2 - n + 3) / 2) - 1, 2))
+		for m in range(1, int((self.num_pix // 2 - n + 3) / 2), 1):
+			plus = Phi[self.num_pix // 2 - m + 1, m + n] + solved[
+				self.num_pix // 2 - m + 1] + solved[m + n]
+			minus = -Phi[self.num_pix // 2 - m + 1, m + n] + solved[
+				self.num_pix // 2 - m + 1] + solved[m + n]
+			branches[m - 1, 0] = plus
+			branches[m - 1, 1] = minus
+
+		theta1 = np.append(branches[:, 0], branches[:, 1])
+		theta2 = np.append(branches[:, 1], branches[:, 0])
+		xdata = np.cos(theta1)
+		ydata = np.sin(theta2)
+
+		next_phi, error_val = self.find_next_phi(xdata=xdata, ydata=ydata,
+												 AltReturn=useAlt)
+		solved[n + self.num_pix // 2 + 1] = next_phi
+		error[n + self.num_pix // 2 + 1] = error_val
+
+		if error[n + self.num_pix // 2 + 1] - error[
+			n + self.num_pix // 2] > error_threshold:
+			n -= 1
+			useAlt = True
+		else:
+			useAlt = False
+			n += 1
+
+	# Return solved branches
+	return solved, error
+
+
+def find_next_phi(xdata=None, ydata=None, AltReturn=False):
+	"""Form a complex number.
+
+	Keyword arguments:
+	real -- the real part (default 0.0)
+	imag -- the imaginary part (default 0.0)
+	"""
+
+	# Samples the error function and starts minimization near the minimum
+
+	def thetaError(theta):
+		return np.minimum((np.add.outer(xdata, -np.cos(theta)))**2,
+						  (np.add.outer(ydata, -np.sin(theta)))**2).sum(0)
+
+	def logThetaError(theta):
+		return np.log(
+			np.minimum((np.add.outer(xdata, -np.cos(theta)))**2,
+					   (np.add.outer(ydata, -np.sin(theta)))**2).sum(0))
+
+	def ABError(AB):
+		return np.log(
+			np.minimum((np.add.outer(xdata, -AB[0, :, :]))**2,
+					   (np.add.outer(ydata, -AB[1, :, :]))**2).sum(0))
+
+	def opt_func(theta):
+		if np.abs(theta) > np.pi:
+			return 1e10
+		else:
+			return np.log(np.sum(np.minimum((xdata - np.cos(theta))**2,
+											(ydata - np.sin(theta))**2)))
+
+	# This error function has negative poles at the solution
+	# Search for points theta that have a very large second derivative to find the poles
+	theta = np.linspace(-np.pi, np.pi, 50000)
+	thetaError = thetaError(theta)
+	logThetaError = logThetaError(theta)
+	# dthetaError= np.gradient(thetaError,theta)
+	# ddthetaError = np.gradient(dthetaError,theta)
+	num_theta = 2  # Number of candidates to accept. Two is optimal.
+	# mask = (np.argpartition(ddthetaError,-num_theta)[-num_theta:]) # Indices where second derivative is maximal
+
+	# Why not just brute force calculate the minimum of the error function?
+	# Why was calculating the second derivative necessary?
+	mask = (np.argpartition(logThetaError, num_theta)[:num_theta])
+	print("Possible Theta = ", theta[mask])
+	theta0 = theta[mask]
+
+	# Optimize candidate theta and choose the theta with smallest error
+	fCandidate = []
+	thetaCandidate = []
+	for val in theta0:
+		res = optimize.minimize(opt_func, x0=val, method='CG', tol=1e-10,
+								options={'gtol': 1e-8, 'maxiter': 10000})
+		fCandidate.append(res.fun)
+		thetaCandidate.append(res.x)
+	fCandidate = np.asarray(fCandidate)
+	print("Error = ", fCandidate)
+	thetaCandidate = np.asarray(thetaCandidate)
+	thetaFinal = thetaCandidate[np.argmin(fCandidate)]
+	fFinal = np.min(fCandidate)
+	print("Final Theta = ", thetaFinal)
+
+	if AltReturn:
+		thetaFinal = thetaCandidate[np.argmax(fCandidate)]
+		fFinal = np.max(fCandidate)
+		print("Alternate Triggered!")
+		print("Final Theta = ", thetaFinal)
+
+	# Return ideal phi and the value of the error function at that phi
+	return np.arctan2(np.sin(thetaFinal), np.cos(thetaFinal)), fFinal
+
+def append_to_h5file(image_stack, cosPhi_marginal, phase,
+					 filename="data.h5"):
+	with h5py.File(filename, 'a') as f:
+		# Create datasets if they don't exist, otherwise append data
+		if "image_stack" in f.keys():
+			f["image_stack"].resize((f["image_stack"].shape[0] + 1),
+									axis=0)
+			new_data = np.expand_dims(image_stack, axis=0)
+			f["image_stack"][-1:] = new_data
+		else:
+			f.create_dataset("image_stack",
+							 data=np.expand_dims(image_stack, axis=0),
+							 maxshape=(
+								 None, image_stack.shape[0],
+								 image_stack.shape[1],
+								 image_stack.shape[2]), compression="gzip",
+							 compression_opts=9, chunks=True)
+
+		if "cosPhi_marginal" in f.keys():
+			f["cosPhi_marginal"].resize(
+				(f["cosPhi_marginal"].shape[0] + 1), axis=0)
+			new_data = np.expand_dims(cosPhi_marginal, axis=0)
+			f["cosPhi_marginal"][-1:] = new_data
+		else:
+			f.create_dataset("cosPhi_marginal",
+							 data=np.expand_dims(cosPhi_marginal, axis=0),
+							 maxshape=(None, cosPhi_marginal.shape[0],
+									   cosPhi_marginal.shape[1]),
+							 compression="gzip", compression_opts=9,
+							 chunks=True)
+
+		if "phase" in f.keys():
+			f["phase"].resize((f["phase"].shape[0] + 1),
+									 axis=0)
+			new_data = np.expand_dims(phase_target, axis=0)
+			f["phase"][-1:] = new_data
+		else:
+			f.create_dataset("phase",
+							 data=np.expand_dims(phase_target, axis=0),
+							 maxshape=(None, phase_target.shape[0]),
+							 compression="gzip", compression_opts=9,
+							 chunks=True)
+
+def export_training_data(num_data=1000,
+						 file="/Users/nolanpeard/Desktop/test2.h5",
+						 image_stack_depth = 1):
+	for _ in range(num_data):
+		fluo = Speckle_1D.Fluorescence_1D(kmax=2, num_pix=51,
+										  num_atoms=np.random.random_integers(3,
+																			  high=10))
+		phase_target = fluo.coh_phase_double
+		cosPhi_from_dataPhase = np.cos(fluo.phase_from_data(
+			num_shots=1000))
+		image_stack = np.zeros((image_stack_depth, 51, 51))
+		for i in range(image_stack_depth):
+			image_stack[i] = fluo.get_incoh_intens()
+
+		append_to_h5file(image_stack, cosPhi_from_dataPhase, phase_target,
+						 filename=file)
+
+	# Check that the file opens and contains data of the expected size
+	with h5py.File(file, 'r') as f:
+		image_stack_data = f["image_stack"][:]
+		cosPhi_marginal_data = f["cosPhi_marginal"][:]
+		phase_target_data = f["phase_target"][:]
+
+	print("image_stack_data: ", image_stack_data.shape)
+	print("cosPhi_marginal_data: ", cosPhi_marginal_data.shape)
+	print("phase_target_data: ", phase_target_data.shape)
