@@ -53,7 +53,7 @@ def PhiSolver(cosPhi, initial_phase=0):
 		to be retrieved. Accuracy of this estimate determines fidelity of
 		phase retrieval.
 	"""
-	num_pix = int( (cosPhi.shape[0]+1)/2 )
+	num_pix = int((cosPhi.shape[0] +1 ) / 2)
 	cosPhi_sym = (cosPhi[num_pix - 1:3 * num_pix // 2,
 							 num_pix - 1:3 * num_pix // 2]
 							 + cosPhi[num_pix // 2:num_pix,

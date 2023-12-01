@@ -10,6 +10,7 @@ from scipy import optimize
 from mpl_point_clicker import clicker
 import matplotlib.gridspec as gridspec
 from matplotlib import colors
+import TriPhase_2D
 
 
 class OOMFormatter(matplotlib.ticker.ScalarFormatter):
@@ -257,8 +258,7 @@ class Plot_2D:
                       self.num_pix - 1:]
         quad2_real_phase = self.fluo.coh_phase_double[:self.num_pix, self.num_pix-1:][::-1,:]
 
-        cosPhi_from_dataPhase = np.cos(
-            self.fluo.phase_from_data(num_shots=num_shots))
+        cosPhi_from_dataPhase = self.fluo.cosPhi_from_data(num_shots=num_shots)
         quad1_cosPhi_from_dataPhase = (cosPhi_from_dataPhase[self.num_pix - 1:2 * self.num_pix,
                                  self.num_pix - 1:2 * self.num_pix,
                                  self.num_pix - 1:2 * self.num_pix,
@@ -273,9 +273,6 @@ class Plot_2D:
 
         quad1_cosPhi = quad1_cosPhi_from_dataPhase
         quad2_cosPhi = quad2_cosPhi_from_dataPhase[::-1,:,::-1,:]
-        # cosPhi = self.fluo.cosPhi_from_structure()
-        quad1_Phi = np.arccos(quad1_cosPhi)
-        quad2_Phi = np.arccos(quad2_cosPhi)
 
         quad1_solved = None
         quad2_solved = None
@@ -290,7 +287,8 @@ class Plot_2D:
         yAlt = 0  # Y position of user-labeled alternates
         while (xAlt is not None) & (yAlt is not None):
             X0 = [quad1_real_phase[0,1], quad1_real_phase[1,0]]
-            quad1_solved, quad1_error = self.fluo.PhiSolver_manualSelect(Phi=quad1_Phi, quadX0=X0, Alt=quad1_alternates)
+            quad1_solved, quad1_error = TriPhase_2D.PhiSolver_manualSelect(
+                cosPhi=quad1_cosPhi, quadX0=X0, Alt=quad1_alternates)
 
             fig = P.figure(figsize=(7, 7))
             P.rcParams.update({'font.size': 22})
@@ -336,7 +334,8 @@ class Plot_2D:
         yAlt = 0  # Y position of user-labeled alternates
         while (xAlt is not None) & (yAlt is not None):
             X0 = [quad2_real_phase[0, 1], quad2_real_phase[1, 0]]
-            quad2_solved, quad2_error = self.fluo.PhiSolver_manualSelect(Phi=quad2_Phi, quadX0=X0, Alt=quad2_alternates)
+            quad2_solved, quad2_error = TriPhase_2D.PhiSolver_manualSelect(
+                cosPhi=quad2_cosPhi, quadX0=X0, Alt=quad2_alternates)
 
             fig = P.figure(figsize=(7, 7))
             P.rcParams.update({'font.size': 22})
@@ -541,12 +540,15 @@ class Plot_2D:
 
 
     def plot_PhiSolver(self, num_shots = 1000):
-        from skimage.restoration import unwrap_phase
-        solved, error = self.fluo.PhiSolver(num_shots=num_shots)
-
-        solved = solved
         real_phase = self.fluo.coh_phase_double[self.fluo.num_pix - 1:2 * self.fluo.num_pix -1, self.fluo.num_pix - 1:2 * self.fluo.num_pix -1]
         #real_phase = unwrap_phase(real_phase)
+        # real_phase = self.coh_phase_double[
+        #              self.num_pix - 1:3 * self.num_pix // 2,
+        #              self.num_pix - 1:3 * self.num_pix // 2]
+        initial_phase = [real_phase[0,1], real_phase[1,0]]
+        cosPhi = self.fluo.cosPhi_from_data(num_shots=num_shots)
+        solved, error = TriPhase_2D.PhiSolver(cosPhi,
+                                initial_phase=initial_phase, error_reject=-10)
 
         fig = P.figure(figsize=(10, 10))
         P.rcParams.update({'font.size': 22})

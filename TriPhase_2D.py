@@ -5,37 +5,32 @@ from scipy import optimize
 from itertools import permutations
 import h5py
 import Speckle_2D
+import time
 
-def PhiSolver(self, num_shots=1000, error_reject=-10):
-	"""Form a complex number.
+def PhiSolver(cosPhi, initial_phase=[0,0], error_reject=-10):
+	"""Solves the phase for a given cosPhi from data and guesstimate of the
+	first phase value. Uses all rows of Phi to solve the sign problem and
+	obtain the correct phase slope.
 
 	Keyword arguments:
-	real -- the real part (default 0.0)
-	imag -- the imaginary part (default 0.0)
-	"""
-	cosPhi_from_dataPhase = np.cos(
-		self.phase_from_data(num_shots=num_shots))
-	cosPhi_from_dataPhase = (cosPhi_from_dataPhase[
-							 self.num_pix - 1:2 * self.num_pix,
-							 self.num_pix - 1:2 * self.num_pix,
-							 self.num_pix - 1:2 * self.num_pix,
-							 self.num_pix - 1:2 * self.num_pix] + cosPhi_from_dataPhase[
-																  0:self.num_pix,
-																  0:self.num_pix,
-																  0:self.num_pix,
-																  0:self.num_pix][
-																  ::-1, ::-1,
-																  ::-1,
-																  ::-1]) / 2
-	cosPhi = cosPhi_from_dataPhase
-	# cosPhi = self.cosPhi_from_structure()
-	Phi = np.arccos(cosPhi)
-	real_phase = self.coh_phase_double[self.num_pix - 1:3 * self.num_pix // 2,
-				 self.num_pix - 1:3 * self.num_pix // 2]
+		cosPhi (float) - 2D NumPy array, 2*num_pix-1 to an edge, contains the
+		phase information to be retrieved. Usually should be computed using
+		the "cosPhi_from_data" method in the Fluorescence_1D class
 
-	solved = np.zeros(2 * (self.num_pix,))
-	solved[0, 1] = real_phase[0, 1]
-	solved[1, 0] = real_phase[1, 0]
+		initial_phase (float) - estimated value of the first pixel of phase
+		to be retrieved. Accuracy of this estimate determines fidelity of
+		phase retrieval.
+	"""
+	num_pix = int((cosPhi.shape[0] + 1) / 2)
+	cosPhi_sym = (cosPhi[num_pix - 1:2 * num_pix, num_pix - 1:2 * num_pix,
+						num_pix - 1:2 * num_pix, num_pix - 1:2 * num_pix]
+				  + cosPhi[0:num_pix, 0:num_pix, 0:num_pix, 0:num_pix][::-1,
+					::-1, ::-1, ::-1]) / 2
+
+	Phi = np.arccos(cosPhi_sym)
+	solved = np.zeros(2 * (num_pix,))
+	solved[0, 1] = initial_phase[0]
+	solved[1, 0] = initial_phase[1]
 
 	error = np.zeros_like(solved)
 
@@ -44,7 +39,7 @@ def PhiSolver(self, num_shots=1000, error_reject=-10):
 	suspect_num = -1  # Index for list of suspect pixels to be picked as alternates in re-solving
 	num_pixels = 1  # To re-solve
 	perm_num = -1  # The index in the list of permutations to use for alternates in re-solving
-	perm = np.zeros(self.num_pix)
+	perm = np.zeros(num_pix)
 	while n < len(Phi[0, 0, 0, :]) + 1:
 		# Generate list of points across the diagonal to be solved this round
 		prev_solve_1 = np.arange(n - 1)
@@ -88,11 +83,11 @@ def PhiSolver(self, num_shots=1000, error_reject=-10):
 			# If error flag has been triggered for the next diagonal, use the alternate value for trial positions
 			# next_phi, error_val = self.find_next_phi(xdata=xdata, ydata=ydata)
 			if diagonal_flag == n + 1 and perm[m] == 1:
-				next_phi, error_val = self.find_next_phi(xdata=xdata,
+				next_phi, error_val = find_next_phi(xdata=xdata,
 														 ydata=ydata,
 														 AltReturn=True)
 			else:
-				next_phi, error_val = self.find_next_phi(xdata=xdata,
+				next_phi, error_val = find_next_phi(xdata=xdata,
 														 ydata=ydata)
 
 			solved[current_pair[0], current_pair[1]] = next_phi
@@ -113,7 +108,8 @@ def PhiSolver(self, num_shots=1000, error_reject=-10):
 			print("Errors: ", error[to_solve[0, :], to_solve[1, :]])
 			err_idx = np.argmax(error[to_solve[0, :], to_solve[1, :]])
 			suspects = np.zeros((4,
-								 diagonal_flag - 1))  # The fourth row is just a dummy case, only need 3 permutations for a 1 pixel error
+								 diagonal_flag - 0))  # The fourth row is
+			# just a dummy case, only need 3 permutations for a 1 pixel error
 			suspects[0, err_idx] = 1
 			suspects[1, err_idx - 1] = 1
 			suspects[2, err_idx - 1:err_idx + 1] = 1
@@ -156,7 +152,7 @@ def PhiSolver(self, num_shots=1000, error_reject=-10):
 			diagonal_flag = 0
 			suspect_num = -1
 			perm_num = -1
-			perm = np.zeros(self.num_pix)
+			perm = np.zeros(num_pix)
 		print("suspect_num", suspect_num)
 		print("perm_num", perm_num)
 		n += 1
@@ -203,7 +199,7 @@ def PhiSolver(self, num_shots=1000, error_reject=-10):
 			ydata = np.sin(theta2)
 
 			print(current_pair)
-			next_phi, error_val = self.find_next_phi(xdata=xdata, ydata=ydata)
+			next_phi, error_val = find_next_phi(xdata=xdata, ydata=ydata)
 
 			solved[current_pair[0], current_pair[1]] = next_phi
 			error[current_pair[0], current_pair[1]] = error_val
@@ -211,20 +207,30 @@ def PhiSolver(self, num_shots=1000, error_reject=-10):
 	return solved, error
 
 
-def PhiSolver_manualSelect(self, Phi=None, quadX0=[0, 0], Alt=None):
-	"""Form a complex number.
+def PhiSolver_manualSelect(cosPhi, quadX0=[0, 0], Alt=None):
+	"""Solves the phase for a given cosPhi from data and guesstimate of the
+	first phase value. Uses all rows of Phi to solve the sign problem and
+	obtain the correct phase slope. Here, the user selects where resolving is used.
 
 	Keyword arguments:
-	real -- the real part (default 0.0)
-	imag -- the imaginary part (default 0.0)
-	"""
-	# real_phase = self.coh_phase_double[self.num_pix - 1:3 * self.num_pix // 2, self.num_pix - 1:3 * self.num_pix // 2]
-	real_phase = self.coh_phase_double[self.num_pix // 2:self.num_pix,
-				 self.num_pix - 1: 3 * self.num_pix // 2][::-1, :]
+		cosPhi (float) - 2D NumPy array, 2*num_pix-1 to an edge, contains the
+		phase information to be retrieved. Usually should be computed using
+		the "cosPhi_from_data" method in the Fluorescence_1D class
 
-	solved = np.zeros(2 * (self.num_pix,))
-	# solved[0,1] = real_phase[0,1]
-	# solved[1,0] = real_phase[1,0]
+		initial_phase (float) - estimated value of the first pixel of phase
+		to be retrieved. Accuracy of this estimate determines fidelity of
+		phase retrieval.
+	"""
+	num_pix = int((cosPhi.shape[0] ))
+	# cosPhi_sym = (cosPhi[num_pix - 1:2 * num_pix, num_pix - 1:2 * num_pix,
+	# 			  num_pix - 1:2 * num_pix, num_pix - 1:2 * num_pix]
+	# 			  + cosPhi[0:num_pix, 0:num_pix, 0:num_pix, 0:num_pix][::-1,
+	# 				::-1, ::-1, ::-1]) / 2
+	print(num_pix)
+	time.sleep(3)
+	Phi = np.arccos(cosPhi)
+
+	solved = np.zeros(2 * (num_pix,))
 	solved[0, 1] = quadX0[0]
 	solved[1, 0] = quadX0[1]
 
@@ -273,11 +279,11 @@ def PhiSolver_manualSelect(self, Phi=None, quadX0=[0, 0], Alt=None):
 			print(current_pair)
 			# If an alternate has been requested by the user for the pixel, choose the other value
 			if Alt[current_pair[0], current_pair[1]] == 1:
-				next_phi, error_val = self.find_next_phi(xdata=xdata,
+				next_phi, error_val = find_next_phi(xdata=xdata,
 														 ydata=ydata,
 														 AltReturn=True)
 			else:
-				next_phi, error_val = self.find_next_phi(xdata=xdata,
+				next_phi, error_val = find_next_phi(xdata=xdata,
 														 ydata=ydata)
 
 			solved[current_pair[0], current_pair[1]] = next_phi
@@ -326,36 +332,30 @@ def PhiSolver_manualSelect(self, Phi=None, quadX0=[0, 0], Alt=None):
 			ydata = np.sin(theta2)
 
 			print(current_pair)
-			next_phi, error_val = self.find_next_phi(xdata=xdata, ydata=ydata)
+			next_phi, error_val = find_next_phi(xdata=xdata, ydata=ydata)
 
 			solved[current_pair[0], current_pair[1]] = next_phi
 			error[current_pair[0], current_pair[1]] = error_val
 
 	return solved, error
 
-
-def find_next_phi(self, xdata=None, ydata=None, AltReturn=False):
-	"""Form a complex number.
+def find_next_phi(xdata=None, ydata=None, AltReturn=False):
+	"""Finds the nearest intersection of sets of possible theta by finding
+	the pairs of vertical and horizontal lines that best fit the data when
+	plotted as ordered pairs in the xy-plane.
 
 	Keyword arguments:
-	real -- the real part (default 0.0)
-	imag -- the imaginary part (default 0.0)
+		xdata (float) - cosine of the candidate theta value array
+		ydata (float) - sine of the candidate theta value array
+		AltReturn (bool) - when True, returns the alternate (less optimal)
+		value of theta that fits the data
 	"""
 
 	# Samples the error function and starts minimization near the minimum
-
-	def thetaError(theta):
-		return np.minimum((np.add.outer(xdata, -np.cos(theta)))**2,
-						  (np.add.outer(ydata, -np.sin(theta)))**2).sum(0)
-
 	def logThetaError(theta):
-		return np.log(np.minimum((np.add.outer(xdata, -np.cos(theta)))**2,
-								 (np.add.outer(ydata, -np.sin(theta)))**2).sum(
-			0))
-
-	def ABError(AB):
-		return np.log(np.minimum((np.add.outer(xdata, -AB[0, :, :]))**2,
-								 (np.add.outer(ydata, -AB[1, :, :]))**2).sum(0))
+		return np.log(
+			np.minimum((np.add.outer(xdata, -np.cos(theta)))**2,
+					   (np.add.outer(ydata, -np.sin(theta)))**2).sum(0))
 
 	def opt_func(theta):
 		if np.abs(theta) > np.pi:
@@ -364,20 +364,11 @@ def find_next_phi(self, xdata=None, ydata=None, AltReturn=False):
 			return np.log(np.sum(np.minimum((xdata - np.cos(theta))**2,
 											(ydata - np.sin(theta))**2)))
 
-	# This error function has negative poles at the solution
-	# Search for points theta that have a very large second derivative to find the poles
+	# Find candidate theta by doing brute force search of the 1D parameter space
 	theta = np.linspace(-np.pi, np.pi, 50000)
-	thetaError = thetaError(theta)
 	logThetaError = logThetaError(theta)
-	dthetaError = np.gradient(logThetaError, theta)
-	ddthetaError = np.gradient(dthetaError, theta)
 	num_theta = 2  # Number of candidates to accept. Two is optimal.
-	mask = (np.argpartition(ddthetaError, -num_theta)[
-			-num_theta:])  # Indices where second derivative is maximal
-
-	# Why not just brute force calculate the minimum of the error function?
-	# Why was calculating the second derivative necessary?
-	# mask = (np.argpartition(logThetaError, num_theta)[:num_theta])
+	mask = (np.argpartition(logThetaError, num_theta)[:num_theta])
 	print("Possible Theta = ", theta[mask])
 	theta0 = theta[mask]
 
@@ -401,63 +392,6 @@ def find_next_phi(self, xdata=None, ydata=None, AltReturn=False):
 		fFinal = np.max(fCandidate)
 		print("Alternate Triggered!")
 		print("Final Theta = ", thetaFinal)
-
-	# Plot some stuff for troubleshooting
-	# AB = np.mgrid[-1:1:1j * 500, -1:1:1j * 500]
-	# ABError = ABError(AB)
-	#
-	# import pylab as P
-	# fig = P.figure(figsize=(15,5))
-	# ax1 = fig.add_subplot(131)
-	# ax1.scatter(xdata, ydata)
-	# ax1.axvline(x=np.cos(thetaFinal))
-	# ax1.axhline(y=np.sin(thetaFinal))
-	# ax1.set_xlabel(r"$\cos(\theta)$")
-	# ax1.set_ylabel(r"$\sin(\theta)$")
-	#
-	# ax2 = fig.add_subplot(132)
-	# ax2.plot(theta, thetaError/np.abs(thetaError).max(), label = "Error Function")
-	# ax2.plot(theta, dthetaError/np.abs(dthetaError).max(), label = "First Derivative")
-	# ax2.plot(theta, ddthetaError/np.abs(ddthetaError).max(), label = "Second Derivative")
-	# ax2.set_xlabel(r'$\theta$')
-	# ax2.set_ylabel("Error Function")
-	# ax2.legend()
-	#
-	# ax3 = fig.add_subplot(133)
-	# im = ax3.imshow(ABError, origin='lower', extent=[-1,1,-1,1])
-	# ax3.set_xlabel(r"$\cos(\theta)$")
-	# ax3.set_ylabel(r"$\sin(\theta)$")
-	# P.colorbar(im, ax=ax3)
-	# P.tight_layout()
-	# P.show()
-
-	# # Plot some stuff for publication
-	# import pylab as P
-	# fig = P.figure(figsize=(10, 5))
-	# P.rcParams.update({'font.size': 22})
-	# ax1 = fig.add_subplot(121)
-	# ax1.axvline(x=np.cos(thetaFinal), color='r', zorder=1)
-	# ax1.axhline(y=np.sin(thetaFinal), color='r', zorder=2)
-	# ax1.scatter(xdata[:len(xdata)//2], ydata[:len(xdata)//2], zorder=3, c = 'green')
-	# ax1.scatter(xdata[len(xdata) // 2:], ydata[len(xdata) // 2:], zorder=3, c = 'purple')
-	# ax1.set_xlabel(r"$\cos\left(\theta_\pm \right)$")
-	# ax1.set_ylabel(r"$\sin \left(\theta_\mp \right)$")
-	# ax1.text(0.05, 0.95, 'A', transform=ax1.transAxes,
-	#          fontsize=22, fontweight='bold', va='top', c='black')
-	#
-	# ax2 = fig.add_subplot(122)
-	# ax2.plot(theta, thetaError , label=r"$E(\phi)$")
-	# ax2.plot(theta, logThetaError , label=r"$\log \left[E(\phi)\right]$")
-	# ax2.set_xlabel(r'$\phi$')
-	# ax2.set_xticks([-np.pi,0,np.pi])
-	# ax2.set_xticklabels([r'$-\pi$', '0', r'$\pi$'])
-	# #ax2.set_ylabel("Error")
-	# ax2.text(0.05, 0.95, 'B', transform=ax2.transAxes,
-	#          fontsize=22, fontweight='bold', va='top', c='black')
-	# P.rcParams.update({'font.size': 16})
-	# ax2.legend(loc='lower right')
-	# P.tight_layout()
-	# P.show()
 
 	# Return ideal phi and the value of the error function at that phi
 	return np.arctan2(np.sin(thetaFinal), np.cos(thetaFinal)), fFinal

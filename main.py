@@ -28,16 +28,16 @@ if __name__ == '__main__':
         #plot.plot_simple_PhiSolve(num_shots=1000)
         #plot.learnStructure(num_shots=10000)
 
-        plot = Plot_2D.Plot_2D(num_pix=11, num_atoms=7, kmax=7)
+        plot = Plot_2D.Plot_2D(num_pix=11, num_atoms=7, kmax=2)
         #plot.plot_Object()
         #for n in range(3):
         #     plot.plot_Shot()
         #plot.plot_Intensities(num_shots=1000)
         #plot.plot_Closure(num_shots=1000)
         #plot.plot_ClosurePhase(num_shots=1000)
-        plot.plot_cosPhi(num_shots=1000)
-        #plot.plot_PhiSolver(num_shots=10000)
-        #plot.plot_PhiSolver_manualSelect(num_shots=1000)
+        #plot.plot_cosPhi(num_shots=1000)
+        #plot.plot_PhiSolver(num_shots=20000)
+        plot.plot_PhiSolver_manualSelect(num_shots=1000)
         #plot.learnStructure(num_shots=10000)
 
         #PaperFigures.Figure_1()
