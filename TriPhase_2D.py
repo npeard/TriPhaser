@@ -207,7 +207,7 @@ def PhiSolver(cosPhi, initial_phase=[0,0], error_reject=-10):
 	return solved, error
 
 
-def PhiSolver_manualSelect(cosPhi, quadX0=[0, 0], Alt=None):
+def PhiSolver_manualSelect(cosPhi, initial_phase=[0,0], Alt=None):
 	"""Solves the phase for a given cosPhi from data and guesstimate of the
 	first phase value. Uses all rows of Phi to solve the sign problem and
 	obtain the correct phase slope. Here, the user selects where resolving is used.
@@ -226,23 +226,17 @@ def PhiSolver_manualSelect(cosPhi, quadX0=[0, 0], Alt=None):
 	# 			  num_pix - 1:2 * num_pix, num_pix - 1:2 * num_pix]
 	# 			  + cosPhi[0:num_pix, 0:num_pix, 0:num_pix, 0:num_pix][::-1,
 	# 				::-1, ::-1, ::-1]) / 2
-	print(num_pix)
-	time.sleep(3)
 	Phi = np.arccos(cosPhi)
 
 	solved = np.zeros(2 * (num_pix,))
-	solved[0, 1] = quadX0[0]
-	solved[1, 0] = quadX0[1]
+	solved[0, 1] = initial_phase[0]
+	solved[1, 0] = initial_phase[1]
 
 	error = np.zeros_like(solved)
 
 	n = 3
 	while n < len(Phi[0, 0, 0, :]) + 1:
 		# Generate list of points across the diagonal to be solved this round
-		# prev_solve_1 = np.arange(n-1)
-		# prev_solve_2 = prev_solve_1[::-1]
-		# prev_solve = np.asarray([prev_solve_1, prev_solve_2])
-
 		to_solve_1 = np.arange(n)
 		to_solve_2 = to_solve_1[::-1]
 		to_solve = np.asarray([to_solve_1, to_solve_2])
@@ -302,10 +296,6 @@ def PhiSolver_manualSelect(cosPhi, quadX0=[0, 0], Alt=None):
 			current_pair = to_solve[:, m]
 			# Generate matrix of indices which fill the box defined by the origin and our current point
 			# Find pairs of vectors which span the box and sum to the current vector
-			# current_pair[np.argmin(current_pair)] += 1
-			# current_pair[np.argmax(current_pair)] -=1
-			# A = np.indices(current_pair)
-			# B = np.indices(current_pair)
 			A = np.mgrid[0:current_pair[0] + 1, 0:current_pair[1] + 1]
 			B = np.mgrid[0:current_pair[0] + 1, 0:current_pair[1] + 1]
 			B[0, :, :] = current_pair[0] - B[0, :, :]
@@ -395,3 +385,71 @@ def find_next_phi(xdata=None, ydata=None, AltReturn=False):
 
 	# Return ideal phi and the value of the error function at that phi
 	return np.arctan2(np.sin(thetaFinal), np.cos(thetaFinal)), fFinal
+
+def append_to_h5file(cosPhi_marginal, phase, filename="data.h5"):
+	"""Appends training data consisting of the marginalized cosPhi, and the
+	structure phase to a file.
+
+	Keyword arguments:
+		cosPhi_marginal (float) - the computed marginalized cosPhi array
+		phase (float) - the target phase for the structure
+		filename (string) - the output HDF5 file where the data is to be
+		appended
+	"""
+	with h5py.File(filename, 'a') as f:
+		# Create datasets if they don't exist, otherwise append data
+		if "cosPhi_marginal" in f.keys():
+			f["cosPhi_marginal"].resize(
+				(f["cosPhi_marginal"].shape[0] + 1), axis=0)
+			new_data = np.expand_dims(cosPhi_marginal, axis=0)
+			f["cosPhi_marginal"][-1:] = new_data
+		else:
+			f.create_dataset("cosPhi_marginal",
+							 data=np.expand_dims(cosPhi_marginal, axis=0),
+							 maxshape=(None, cosPhi_marginal.shape[0],
+									   cosPhi_marginal.shape[1],
+									   cosPhi_marginal.shape[2],
+									   cosPhi_marginal.shape[3]),
+							 compression="gzip", compression_opts=9,
+							 chunks=True)
+
+		if "phase" in f.keys():
+			f["phase"].resize((f["phase"].shape[0] + 1),
+									 axis=0)
+			new_data = np.expand_dims(phase, axis=0)
+			f["phase"][-1:] = new_data
+		else:
+			f.create_dataset("phase",
+							 data=np.expand_dims(phase, axis=0),
+							 maxshape=(None, phase.shape[0], phase.shape[1]),
+							 compression="gzip", compression_opts=9,
+							 chunks=True)
+
+def generate_training_data(num_data=1000,
+						 file="/Users/nolanpeard/Desktop/test2.h5"):
+	"""Generates training data and writes it to a file.
+
+	Keyword arguments:
+		num_data (int) - the number of data and label pairs to generate and
+		export
+		file (string) - the file path where the data is to be exported
+		image_stack_depth (int) - the number of images that should be
+		generated per stack in each data/label set
+		"""
+	for _ in range(num_data):
+		fluo = Speckle_2D.Fluorescence_2D(kmax=2, num_pix=11,
+										  num_atoms=np.random.random_integers(3,
+																			  high=10))
+		phase_target = fluo.coh_phase_double
+		cosPhi_from_dataPhase = fluo.cosPhi_from_data(
+			num_shots=1000)
+
+		append_to_h5file(cosPhi_from_dataPhase, phase_target, filename=file)
+
+	# Check that the file opens and contains data of the expected size
+	with h5py.File(file, 'r') as f:
+		cosPhi_marginal_data = f["cosPhi_marginal"][:]
+		phase_data = f["phase"][:]
+
+	print("cosPhi_marginal_data: ", cosPhi_marginal_data.shape)
+	print("phase_data: ", phase_data.shape)
