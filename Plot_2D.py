@@ -26,21 +26,36 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
              self.format = r'$\mathdefault{%s}$' % self.format
 
 class Plot_2D:
-    def __init__(self, num_atoms=3, num_pix=201, kmax=25, useCrystal = False, useDFT = False):
+    def __init__(self, num_atoms=3, num_pix=201, kmax=25):
+        """Instantiate a Fluorescence_1D object with the given parameters. Use
+        this object to run simulations and plot results.
+
+        Keyword arguments:
+            kmax (float) - maximum coordinate in reciprocal space
+
+            num_pix (int) - number of pixels in reciprocal space,
+        must be an odd number
+
+            num_atoms (int) - number of atoms in the random array,
+        smaller numbers of atoms lead to less HBT phase noise
+        """
         self.num_atoms = num_atoms
         self.num_pix = num_pix
         self.kmax = kmax
-        self.useDFT = useDFT
         self.fluo = Speckle_2D.Fluorescence_2D(kmax=kmax, num_pix=num_pix,
                                                num_atoms=num_atoms)
 
-
     def plot_Object(self):
+        """Plot the atomic array, the array retrieved by taking the inverse
+        Fourier transform of the coherent diffraction intensity, and the
+        array retrieved from inverting the diffraction intensity plus the phase.
+        """
         box_extent = np.max(self.fluo.x_pix[0])
         fig = P.figure(figsize=(15, 10))
         ax1 = fig.add_subplot(231)
         ax1.set_title("Object")
-        ax1.imshow(self.fluo.object, extent=[-box_extent,box_extent,-box_extent,box_extent], origin='lower')
+        ax1.imshow(self.fluo.object, extent=[-box_extent,box_extent,-box_extent,
+                                             box_extent], origin='lower')
 
         obj_NoPhase = np.fft.fftshift(self.fluo.coh_ft)
         obj_NoPhase = np.abs(obj_NoPhase)
@@ -52,19 +67,24 @@ class Plot_2D:
         obj_Phase = np.fft.ifftn(obj_Phase)
 
         obj_NoPhase = np.fft.fftshift(obj_NoPhase)
-        if not self.fluo.useDFT:
-            obj_Phase = np.fft.fftshift(obj_Phase) # When using DFT mode, why does this line need commenting?
+        obj_Phase = np.fft.fftshift(obj_Phase)
 
-        box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(self.fluo.num_pix, d=2 * self.fluo.kmax / self.fluo.num_pix)))
+        box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(self.fluo.num_pix,
+                                                           d=2 * self.fluo.kmax
+                                                             / self.fluo.num_pix)))
         ax2 = fig.add_subplot(232)
         ax2.set_title("Object from Intensity + Phase")
         # Not sure why this needs to be transposed below, but it does give the correct image
-        ax2.imshow(np.abs(obj_Phase), extent=[-box_extent,box_extent,-box_extent,box_extent], origin='lower')
+        ax2.imshow(np.abs(obj_Phase),
+                   extent=[-box_extent,box_extent,-box_extent,box_extent],
+                   origin='lower')
         ax2.set_xlim([-1, 1])
         ax2.set_ylim([-1, 1])
         ax3 = fig.add_subplot(233)
         ax3.set_title("Object from Intensity")
-        ax3.imshow(np.abs(obj_NoPhase), extent=[-box_extent,box_extent,-box_extent,box_extent], origin='lower')
+        ax3.imshow(np.abs(obj_NoPhase),
+                   extent=[-box_extent,box_extent,-box_extent,box_extent],
+                   origin='lower')
         ax3.set_xlim([-1, 1])
         ax3.set_ylim([-1, 1])
 
@@ -72,7 +92,9 @@ class Plot_2D:
         box_extent = np.max(self.fluo.x_pix[0])
         ax4 = fig.add_subplot(234)
         ax4.set_title("Object")
-        ax4.imshow(self.fluo.object_double, extent=[-box_extent, box_extent, -box_extent, box_extent], origin='lower')
+        ax4.imshow(self.fluo.object_double,
+                   extent=[-box_extent, box_extent, -box_extent, box_extent],
+                   origin='lower')
 
         obj_NoPhase = np.fft.fftshift(self.fluo.coh_ft_double)
         obj_NoPhase = np.abs(obj_NoPhase)
@@ -84,8 +106,7 @@ class Plot_2D:
         obj_Phase = np.fft.ifftn(obj_Phase)
 
         obj_NoPhase = np.fft.fftshift(obj_NoPhase)
-        if not self.fluo.useDFT:
-            obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
+        obj_Phase = np.fft.fftshift(obj_Phase)
 
         box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(self.fluo.num_pix, d=2 * self.fluo.kmax / self.fluo.num_pix)))
         ax5 = fig.add_subplot(235)
@@ -103,9 +124,9 @@ class Plot_2D:
         P.tight_layout()
         P.show()
 
-
     def plot_Shot(self):
-        # PLOT DETECTOR INTENSITIES, SINGLE SHOT
+        """Plot a single detector shot.
+        """
         fig = P.figure(figsize=(10,5))
         s = fig.add_subplot(121)
         s.set_title(("Coherent Intensity"))
@@ -121,9 +142,14 @@ class Plot_2D:
         P.tight_layout()
         P.show()
 
-
     def plot_Intensities(self, num_shots=10000):
-        # PLOT DETECTOR INTENSITIES, g2 MARGINALIZED
+        """Plot the coherent diffraction intensity and compare it to the
+        intensity pattern computed from the double correlation. Compare both
+        to the sum of speckle patterns (white noise).
+
+        Keyword arguments:
+            num_shots (int) - number of shots to compute the correlation
+        """
         colormap = 'viridis'
 
         fig = P.figure(figsize=(10, 10))
@@ -158,13 +184,16 @@ class Plot_2D:
         P.tight_layout()
         P.show()
 
+    def plot_Closure(self, num_shots=10000):
+        """Plot the closure computed from the structure and from the
+        simulated data and compare. The two closures have different domains
+        in k-space, however.
 
-    def plot_Closure(self, num_shots=10000, saveMem = False):
-        # PLOT THE CLOSURES AND THEIR DIFFERENCE
+        Keyword arguments:
+            num_shots (int) - number of shots to compute the correlation
+        """
         dim = (2 * self.fluo.num_pix - 1)//2
         cstruct = self.fluo.closure_from_structure()[dim, :, dim, :]
-        if saveMem:
-            dim = dim//2
         cdata = self.fluo.closure_from_data(num_shots=num_shots)[dim, :, dim, :]
 
         # Plot
@@ -180,22 +209,23 @@ class Plot_2D:
         P.colorbar(im, ax=s)
 
         s = fig.add_subplot(133)
-        if saveMem:
-            cstruct = cstruct[self.fluo.num_pix // 2: 3 * self.fluo.num_pix // 2, self.fluo.num_pix // 2: 3 * self.fluo.num_pix // 2]
         im = s.imshow(cdata - cstruct)
         s.set_title("Difference")
         P.colorbar(im, ax=s)
         P.tight_layout()
         P.show()
 
+    def plot_ClosurePhase(self, num_shots=10000):
+        """Plot a slice of the closure phase from the structure and simulated
+        data.
 
-    def plot_ClosurePhase(self, num_shots = 10000, saveMem = False):
-        # Plot a slice of the closure phase
+        Keyword arguments:
+            num_shots (int) - number of shots to compute the correlation
+        """
         dim = (2*self.fluo.num_pix-1)//2
-        cPhaseStruct = self.fluo.phase_from_structure()[dim,:,dim,:]
-        if saveMem:
-            dim = dim//2
-        cPhaseData = self.fluo.phase_from_data(num_shots=num_shots)[dim, :, dim, :]
+        cPhaseStruct = np.arccos(self.fluo.cosPhi_from_structure()[dim,:,dim,:])
+        cPhaseData = np.arccos(self.fluo.cosPhi_from_data(num_shots=num_shots)[
+                     dim, :, dim, :])
 
         # Plot
         fig = P.figure(figsize=(15, 5))
@@ -210,42 +240,30 @@ class Plot_2D:
         P.colorbar(im, ax=s)
 
         s = fig.add_subplot(133)
-        if saveMem:
-            cPhaseStruct = cPhaseStruct[self.fluo.num_pix // 2: 3 * self.fluo.num_pix // 2, self.fluo.num_pix // 2: 3 * self.fluo.num_pix // 2]
-        im = s.imshow(np.arccos(np.cos(cPhaseData)-np.cos(cPhaseStruct) ) )
+        im = s.imshow(np.arccos(np.cos(cPhaseData) - np.cos(cPhaseStruct)))
         s.set_title("arccos(cos(Phi_data) - cos(Phi_Struct))")
         P.colorbar(im, ax=s)
         P.tight_layout()
         P.show()
 
-
-
     def plot_cosPhi(self, num_shots=10000):
-        # PLOT THE cosPhi MAP FOR ERROR COMPARISON
-        cosPhi_from_structure = self.fluo.cosPhi_from_structure()[1,:,1,:]
-        cosPhi_from_data = self.fluo.cosPhi_from_data(num_shots=num_shots)[1,:,1,:]
-        cosPhi_from_dataPhase = np.cos(
-            self.fluo.phase_from_data(num_shots=num_shots))
+        """Plot a slice of the cosine of the closure phase from the structure and
+        simulated data.
+
+        Keyword arguments:
+            num_shots (int) - number of shots to compute the correlation
+        """
+        cosPhi_from_dataPhase = self.fluo.cosPhi_from_data(num_shots=num_shots)
         cosPhi_from_dataPhase = ( cosPhi_from_dataPhase[self.fluo.num_pix-1:2*self.fluo.num_pix,self.fluo.num_pix-1:2*self.fluo.num_pix,self.fluo.num_pix-1:2*self.fluo.num_pix,self.fluo.num_pix-1:2*self.fluo.num_pix] + cosPhi_from_dataPhase[0:self.fluo.num_pix,0:self.fluo.num_pix,0:self.fluo.num_pix,0:self.fluo.num_pix][::-1,::-1,::-1,::-1] )[1,:,1,:]/2
-        cosPhi_from_structurePhase = np.cos(self.fluo.phase_from_structure())[1,:,1,:]
+        cosPhi_from_structurePhase = self.fluo.cosPhi_from_structure()[1,:,1,:]
 
-        fig = P.figure(figsize=(20, 5))
-        s = fig.add_subplot(151)
-        im = s.imshow(cosPhi_from_data, origin="lower")
-        s.set_title("cos(Phi) from Data")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(153)
-        im = s.imshow(cosPhi_from_structure, origin="lower")
-        s.set_title("cos(Phi) from Structure")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(154)
+        fig = P.figure(figsize=(10, 5))
+        s = fig.add_subplot(121)
         im = s.imshow(cosPhi_from_dataPhase, origin="lower")
         s.set_title("cos(Phi) from phase_from_data")
         P.colorbar(im, ax=s)
 
-        s = fig.add_subplot(155)
+        s = fig.add_subplot(122)
         im = s.imshow(cosPhi_from_structurePhase, origin="lower")
         s.set_title("cos(Phi) from phase_from_structure")
         P.colorbar(im, ax=s)
@@ -253,7 +271,12 @@ class Plot_2D:
         P.show()
 
     def plot_PhiSolver_manualSelect(self, num_shots = 1000, altLabel=False):
-        # Manually select troublesome pixels
+        """Plot the phase retrieved using sign information from all
+        constraints of Phi and perform re-solving using user input.
+
+        Keyword arguments:
+            num_shots (int) - number of shots to compute the correlation
+        """
         quad1_real_phase = self.fluo.coh_phase_double[self.num_pix - 1: ,
                       self.num_pix - 1:]
         quad2_real_phase = self.fluo.coh_phase_double[:self.num_pix, self.num_pix-1:][::-1,:]
@@ -288,7 +311,7 @@ class Plot_2D:
         while (xAlt is not None) & (yAlt is not None):
             X0 = [quad1_real_phase[0,1], quad1_real_phase[1,0]]
             quad1_solved, quad1_error = TriPhase_2D.PhiSolver_manualSelect(
-                cosPhi=quad1_cosPhi, quadX0=X0, Alt=quad1_alternates)
+                cosPhi=quad1_cosPhi, initial_phase=X0, Alt=quad1_alternates)
 
             fig = P.figure(figsize=(7, 7))
             P.rcParams.update({'font.size': 22})
@@ -335,7 +358,7 @@ class Plot_2D:
         while (xAlt is not None) & (yAlt is not None):
             X0 = [quad2_real_phase[0, 1], quad2_real_phase[1, 0]]
             quad2_solved, quad2_error = TriPhase_2D.PhiSolver_manualSelect(
-                cosPhi=quad2_cosPhi, quadX0=X0, Alt=quad2_alternates)
+                cosPhi=quad2_cosPhi, initial_phase=X0, Alt=quad2_alternates)
 
             fig = P.figure(figsize=(7, 7))
             P.rcParams.update({'font.size': 22})
@@ -538,8 +561,13 @@ class Plot_2D:
         #P.tight_layout(pad = 0)
         P.show()
 
-
     def plot_PhiSolver(self, num_shots = 1000):
+        """Plot the phase retrieved using sign information from all
+        constraints of Phi.
+
+        Keyword arguments:
+            num_shots (int) - number of shots to compute the correlation
+        """
         real_phase = self.fluo.coh_phase_double[self.fluo.num_pix - 1:2 * self.fluo.num_pix -1, self.fluo.num_pix - 1:2 * self.fluo.num_pix -1]
         #real_phase = unwrap_phase(real_phase)
         # real_phase = self.coh_phase_double[
@@ -587,181 +615,3 @@ class Plot_2D:
         P.tight_layout()
         P.subplots_adjust(wspace=0.4, hspace=0.4)
         P.show()
-
-
-    def learnStructure(self, num_shots = 10000):
-        # Initial data to be fitted
-        Phi_from_dataPhase = self.fluo.phase_from_data(num_shots=num_shots)
-        Phi_from_dataPhase = (Phi_from_dataPhase[self.fluo.num_pix - 1:3 * self.fluo.num_pix // 2,
-                                 self.fluo.num_pix - 1:3 * self.fluo.num_pix // 2,
-                                 self.fluo.num_pix - 1:3 * self.fluo.num_pix // 2,
-                                 self.fluo.num_pix - 1:3 * self.fluo.num_pix // 2]
-        + Phi_from_dataPhase[self.fluo.num_pix // 2:self.fluo.num_pix,
-                             self.fluo.num_pix // 2:self.fluo.num_pix,
-                             self.fluo.num_pix // 2:self.fluo.num_pix,
-                             self.fluo.num_pix // 2:self.fluo.num_pix][::-1, ::-1, ::-1, ::-1]) / 2
-        g2_from_data = self.fluo.marginalize_g2(num_shots=num_shots)
-
-        # Simple optimization of the error function using differential evolution on compact support
-        print("Learning real-space solution...")
-        res = optimize.differential_evolution(error_func, bounds=2*self.fluo.num_atoms*[(-1,1),], args=(self.fluo.q_pix, g2_from_data, Phi_from_dataPhase, self.fluo.num_pix), workers=-1)
-
-        print("Solution", res.x.reshape(2,self.fluo.num_atoms))
-        print("Actual", self.fluo.coords)
-
-        # Note that we use self.num_atoms here, in case we are working with examples where
-        # some parameters of the simulation to be solved are unknown
-        self.trial = Speckle_2D.Fluorescence_2D(kmax=self.kmax,
-                                                num_pix=self.num_pix,
-                                                num_atoms=self.num_atoms,
-                                                x=res.x.reshape(2,
-                                                                self.num_atoms))
-
-        fig = P.figure(figsize=(14, 7))
-        s = fig.add_subplot(251)
-        box_extent = np.max(self.fluo.x_pix[0])
-        im = s.imshow(self.fluo.object, origin="lower", extent=[-box_extent, box_extent, -box_extent, box_extent])
-        s.set_title("Object Truth")
-        P.colorbar(im, ax=s)
-
-        # Plotting the object in real space
-        s = fig.add_subplot(256)
-        box_extent = np.max(self.trial.x_pix[0])
-        s.imshow(self.trial.object, origin="lower", extent=[-box_extent, box_extent, -box_extent, box_extent])
-        s.set_title("Solution")
-        P.colorbar(im, ax=s)
-
-        # Momentum space objects
-        s = fig.add_subplot(252)
-        box_extent = np.max(self.fluo.q_pix[0])
-        s.imshow(np.abs(self.fluo.coh_ft_double), origin="lower", extent=[-box_extent, box_extent, -box_extent, box_extent])
-        s.set_title("Object Modulus")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(257)
-        box_extent = np.max(self.trial.q_pix[0])
-        s.imshow(np.abs(self.trial.coh_ft_double), origin="lower", extent=[-box_extent, box_extent, -box_extent, box_extent])
-        s.set_title("Solution Modulus")
-        P.colorbar(im, ax=s)
-
-        # Solution Phi
-        s = fig.add_subplot(253)
-        im = s.imshow(Phi_from_dataPhase[0,:,0,:], origin="lower")
-        s.set_title("Phi from True Structure")
-        P.colorbar(im, ax=s)
-
-        # Trial Phi
-        s = fig.add_subplot(258)
-        im = s.imshow(np.arccos(self.trial.cosPhi_from_structure())[:self.num_pix//2+1,:self.num_pix//2+1,:self.num_pix//2+1,:self.num_pix//2+1][0,:,0,:], origin="lower")
-        s.set_title("Phi from Trial Structure")
-        P.colorbar(im, ax=s)
-
-        # Fourier transforms
-        s = fig.add_subplot(254)
-        # Object
-        obj_NoPhase = np.fft.fftshift(self.fluo.coh_ft)
-        obj_NoPhase = np.abs(obj_NoPhase)
-        obj_Phase = np.fft.fftshift(self.fluo.coh_ft)
-        phase = np.fft.fftshift(self.fluo.coh_phase)
-        obj_Phase = np.abs(obj_Phase) * np.exp(1j * phase)
-        obj_NoPhase = np.fft.ifftn(obj_NoPhase)
-        obj_Phase = np.fft.ifftn(obj_Phase)
-        obj_NoPhase = np.fft.fftshift(obj_NoPhase)
-        if not self.fluo.useDFT:
-            obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
-        box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(self.fluo.num_pix, d=2 * self.fluo.kmax / self.fluo.num_pix)))
-        s.imshow(np.abs(obj_Phase), origin="lower", extent=[-box_extent, box_extent, -box_extent, box_extent])
-        s.set_title("True Object from Intensity + Phase")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(259)
-        # Trial Solution
-        obj_NoPhase = np.fft.fftshift(self.trial.coh_ft)
-        obj_NoPhase = np.abs(obj_NoPhase)
-        obj_Phase = np.fft.fftshift(self.trial.coh_ft)
-        phase = np.fft.fftshift(self.trial.coh_phase)
-        obj_Phase = np.abs(obj_Phase) * np.exp(1j * phase)
-        obj_NoPhase = np.fft.ifftn(obj_NoPhase)
-        obj_Phase = np.fft.ifftn(obj_Phase)
-        obj_NoPhase = np.fft.fftshift(obj_NoPhase)
-        if not self.trial.useDFT:
-            obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
-        box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(self.trial.num_pix, d=2 * self.trial.kmax / self.trial.num_pix)))
-        s.imshow(np.abs(obj_Phase), origin="lower", extent=[-box_extent, box_extent, -box_extent, box_extent])
-        s.set_title("Trial Object from Intensity + Phase")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(255)
-        box_extent = 2*self.fluo.kmax
-        s.imshow(unwrap_phase(self.fluo.coh_phase_double), origin="lower", extent=[-box_extent, box_extent, -box_extent, box_extent])
-        s.set_title("True Object Phase")
-        P.colorbar(im, ax=s)
-
-        s = fig.add_subplot(2,5,10)
-        box_extent = 2 * self.trial.kmax
-        s.imshow(unwrap_phase(self.trial.coh_phase_double), origin="lower", extent=[-box_extent, box_extent, -box_extent, box_extent])
-        s.set_title("Trial Phase")
-        P.colorbar(im, ax=s)
-
-        P.tight_layout()
-        P.show()
-
-
-def error_func(x, q_pix, g2_from_data, Phi_from_dataPhase, num_pix):
-    # Error function for fitting structure to the closure phase
-    # Update coordinates
-    x = x.reshape(2,len(x)//2)
-    qr_product_x = np.multiply.outer(q_pix[0, :, :], x[0, :])
-    qr_product_y = np.multiply.outer(q_pix[1, :, :], x[1, :])
-    coh_ft_double = np.exp(-1j * (qr_product_x + qr_product_y + 0)*2*np.pi).mean(2)
-    coh_phase_double = np.angle(coh_ft_double)
-
-    def cosPhi_from_structure():
-        real_phase = coh_phase_double[num_pix - 1:, num_pix - 1:]
-        Phi = np.zeros(4 * (num_pix,))
-        for n in range(num_pix):
-            for m in range(num_pix):
-                # Phi(n1,n2,m1,m2)
-                Phi[n, m, :, :] = np.abs(
-                    np.roll(np.roll(real_phase, -n, axis=0), -m, axis=1) - real_phase - real_phase[n, m])
-        # Phi = Phi[:self.num_pix//2+1, :self.num_pix//2+1, :self.num_pix//2+1, :self.num_pix//2+1]
-        return np.cos(Phi)
-
-    # Update comparison data
-    Phi_from_structure = np.arccos(cosPhi_from_structure())[:num_pix//2+1,:num_pix//2+1,:num_pix//2+1,:num_pix//2+1]
-
-    # Number of atoms of the trial solution is a parameter!
-    intensity_from_structure = np.abs(coh_ft_double)**2
-    intensity_from_data = g2_from_data - 1 + 1 / len(x[0,:])
-    intensity_from_data[intensity_from_data<0] = 0
-
-
-    diffPhi = Phi_from_structure - Phi_from_dataPhase
-    diffPhiSquare = diffPhi**2
-
-    diffIntens = intensity_from_structure - intensity_from_data
-    diffIntensSquare = diffIntens**2
-
-    real_from_structure = np.fft.fftshift(np.sqrt(intensity_from_structure))
-    real_from_structure = np.abs(real_from_structure)
-    real_from_structure = np.fft.ifft(real_from_structure)
-    real_from_structure = np.fft.fftshift(real_from_structure)
-
-    real_from_data = np.fft.fftshift(np.sqrt(intensity_from_data))
-    real_from_data = np.abs(real_from_data)
-    real_from_data = np.fft.ifft(real_from_data)
-    real_from_data = np.fft.fftshift(real_from_data)
-
-    # Compare real space structures without phase information
-    diffReal = np.abs(real_from_structure) - np.abs(real_from_data)
-    diffRealSquare = diffReal**2
-
-    if np.any(np.abs(x) > 1):
-        return 1e10
-    else:
-        return np.sum(1000*diffPhiSquare) + np.sum(diffRealSquare) + np.sum(diffIntensSquare)
-
-
-def rebin(a, shape):
-    sh = shape[0],a.shape[0]//shape[0],shape[1],a.shape[1]//shape[1]
-    return a.reshape(sh).mean(-1).mean(1)

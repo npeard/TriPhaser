@@ -6,13 +6,20 @@ from numba import jit
 
 class Fluorescence_2D:
     def __init__(self, kmax=5, num_pix=51, num_atoms=3, x=None):
-        """Simulate fluorescence speckle from a 2D array of atoms and compute various correlation functions.
+        """Simulate fluorescence speckle from a 2D array of atoms and compute
+        various correlation functions.
 
         Keyword arguments:
             kmax (float) - maximum coordinate in reciprocal space
-            num_pix (int) - number of pixels in reciprocal space, must be an odd number
-            num_atoms (int) - number of atoms in the random array, smaller numbers of atoms lead to less HBT phase noise
-            x (float) - array of user-supplied coordinates to define custom atom array
+
+            num_pix (int) - number of pixels in reciprocal space, must be an
+            odd number
+
+            num_atoms (int) - number of atoms in the random array, smaller
+            numbers of atoms lead to less HBT phase noise
+
+            x (float) - array of user-supplied coordinates to define custom
+            atom array
         """
         self.kmax = kmax
         self.num_pix = num_pix
@@ -21,7 +28,8 @@ class Fluorescence_2D:
         self.init_system()
 
     def init_system(self):
-        """Initialize arrays and variables, generate atomic array. Some arrays are not initialized on startup to save resources.
+        """Initialize arrays and variables, generate atomic array. Some arrays
+        are not initialized on startup to save resources.
         """
         print("Initializing system...")
         self.k_pix = np.mgrid[-self.kmax:self.kmax:1j * self.num_pix, -self.kmax:self.kmax:1j * self.num_pix]
@@ -40,7 +48,8 @@ class Fluorescence_2D:
         self.randomize_coords()
 
     def init_weights_4d(self):
-        """Initialize the 4D weights used to marginalize the 6D triple correlation function.
+        """Initialize the 4D weights used to marginalize the 6D triple
+        correlation function.
         """
         self.weights_4d = self.compute_weights_4d(num_pix=self.num_pix)
 
@@ -50,7 +59,8 @@ class Fluorescence_2D:
         """Calculate the 4D weights using explicit for-loops.
 
         Keyword arguments:
-            num_pix (int) - the number of pixels, self.num_pix, for the simulation
+            num_pix (int) - the number of pixels, self.num_pix, for the
+            simulation
         """
         weights_4d = np.zeros((2*num_pix-1,2*num_pix-1,2*num_pix-1,2*num_pix-1))
 

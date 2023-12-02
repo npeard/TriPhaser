@@ -31,7 +31,7 @@ class Plot_1D:
     def plot_Object(self):
         """Plot the atomic array, the array retrieved by taking the inverse
         Fourier transform of the coherent diffraction intensity, and the
-        array retrieved from inverting the dffraction intensity plus the phase.
+        array retrieved from inverting the diffraction intensity plus the phase.
         """
         P.plot(self.fluo.x_pix, self.fluo.object, label="Object")
         print("Coordinates", self.fluo.coords)
@@ -126,7 +126,6 @@ class Plot_1D:
         P.tight_layout()
         P.show()
 
-
     def plot_Closure(self, num_shots=10000):
         """Plot the closure computed from the structure and from the
         simulated data and compare. The two closures have different domains
@@ -154,7 +153,6 @@ class Plot_1D:
         P.colorbar(im, ax=s)
         P.tight_layout()
         P.show()
-
 
     def plot_ClosurePhase(self, num_shots=10000):
         """Plot the closure phase from the structure and simulated data.
