@@ -257,7 +257,7 @@ def generate_training_data(num_data=1000,
 		generated per stack in each data/label set
 		"""
 	for _ in range(num_data):
-		fluo = Speckle_1D.Fluorescence_1D(kmax=2, num_pix=51,
+		fluo = Speckle_1D.Fluorescence_1D(kmax=3, num_pix=51,
 										  num_atoms=np.random.random_integers(3,
 																			  high=10))
 		phase_target = fluo.coh_phase_double

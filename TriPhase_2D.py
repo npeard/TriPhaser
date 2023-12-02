@@ -243,8 +243,10 @@ def PhiSolver_manualSelect(cosPhi, initial_phase=[0,0], Alt=None):
 
 		for m in range(len(to_solve[0, :])):
 			current_pair = to_solve[:, m]
-			# Generate matrix of indices which fill the box defined by the origin and our current point
-			# Find pairs of vectors which span the box and sum to the current vector
+			# Generate matrix of indices which fill the box defined by the
+			# origin and our current point
+			# Find pairs of vectors which span the box and sum to the
+			# current vector
 			A = np.indices((current_pair[0] + 1, current_pair[1] + 1))
 			B = np.indices((current_pair[0] + 1, current_pair[1] + 1))
 			B[0, :, :] = current_pair[0] - B[0, :, :]
@@ -271,7 +273,8 @@ def PhiSolver_manualSelect(cosPhi, initial_phase=[0,0], Alt=None):
 			ydata = np.sin(theta2)
 
 			print(current_pair)
-			# If an alternate has been requested by the user for the pixel, choose the other value
+			# If an alternate has been requested by the user for the pixel,
+			# choose the other value
 			if Alt[current_pair[0], current_pair[1]] == 1:
 				next_phi, error_val = find_next_phi(xdata=xdata,
 														 ydata=ydata,
@@ -294,8 +297,10 @@ def PhiSolver_manualSelect(cosPhi, initial_phase=[0,0], Alt=None):
 
 		for m in range(len(to_solve[0, :])):
 			current_pair = to_solve[:, m]
-			# Generate matrix of indices which fill the box defined by the origin and our current point
-			# Find pairs of vectors which span the box and sum to the current vector
+			# Generate matrix of indices which fill the box defined by the
+			# origin and our current point
+			# Find pairs of vectors which span the box and sum to the
+			# current vector
 			A = np.mgrid[0:current_pair[0] + 1, 0:current_pair[1] + 1]
 			B = np.mgrid[0:current_pair[0] + 1, 0:current_pair[1] + 1]
 			B[0, :, :] = current_pair[0] - B[0, :, :]
@@ -425,8 +430,8 @@ def append_to_h5file(cosPhi_marginal, phase, filename="data.h5"):
 							 compression="gzip", compression_opts=9,
 							 chunks=True)
 
-def generate_training_data(num_data=1000,
-						 file="/Users/nolanpeard/Desktop/test2.h5"):
+def generate_training_data(num_data=10,
+						 file="/Users/nolanpeard/Desktop/Data2D-2.h5"):
 	"""Generates training data and writes it to a file.
 
 	Keyword arguments:
@@ -441,8 +446,7 @@ def generate_training_data(num_data=1000,
 										  num_atoms=np.random.random_integers(3,
 																			  high=10))
 		phase_target = fluo.coh_phase_double
-		cosPhi_from_dataPhase = fluo.cosPhi_from_data(
-			num_shots=1000)
+		cosPhi_from_dataPhase = fluo.cosPhi_from_data(num_shots=1000)
 
 		append_to_h5file(cosPhi_from_dataPhase, phase_target, filename=file)
 
