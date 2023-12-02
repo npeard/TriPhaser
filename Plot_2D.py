@@ -5,11 +5,8 @@ import matplotlib.pyplot as P
 import Speckle_2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker
-from skimage.restoration import unwrap_phase
-from scipy import optimize
 from mpl_point_clicker import clicker
 import matplotlib.gridspec as gridspec
-from matplotlib import colors
 import TriPhase_2D
 
 

@@ -21,7 +21,8 @@ import mpl_toolkits.mplot3d.art3d as art3d
 def highlight_cell(x,y, ax=None, **kwargs):
     rect = P.Rectangle((x-.5, y-.5), 1, 1, fill=False, **kwargs)
     # For figure 5
-    rect = P.Rectangle(((x-0*.5)*6/11, (y-0*.5)*6/11), 6/11,6/11, fill=False, **kwargs)
+    rect = P.Rectangle(((x-0*.5)*6/11, (y-0*.5)*6/11), 6/11,6/11,
+                       fill=False, **kwargs)
     ax = ax or P.gca()
     ax.add_patch(rect)
     return rect
@@ -30,7 +31,8 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
     def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
         self.oom = order
         self.fformat = fformat
-        matplotlib.ticker.ScalarFormatter.__init__(self,useOffset=offset,useMathText=mathText)
+        matplotlib.ticker.ScalarFormatter.__init__(self,useOffset=offset,
+                                                   useMathText=mathText)
     def _set_order_of_magnitude(self):
         self.orderOfMagnitude = self.oom
     def _set_format(self, vmin=None, vmax=None):
@@ -114,47 +116,67 @@ def Figure_1():
     P.rcParams.update({'font.size': 22})
     # show the 3D rotated projection
     ax1 = fig.add_subplot(111, projection='3d')
-    #cset = ax1.contourf(X, Y, coh_diff, 100, zdir='z', offset=0.5, cmap='binary')
-    ax1.plot_surface(X, Z, Y, rstride=1, cstride=1, facecolors=P.cm.binary(incoh_diff/np.max(incoh_diff)), shade=False, zorder=5)
-    ax1.plot_surface(X, Z+1, Y, rstride=1, cstride=1, facecolors=P.cm.binary(incoh_diff_1 / np.max(incoh_diff_1)),
+    ax1.plot_surface(X, Z, Y, rstride=1, cstride=1,
+                     facecolors=P.cm.binary(incoh_diff/np.max(incoh_diff)),
+                     shade=False, zorder=5)
+    ax1.plot_surface(X, Z+1, Y, rstride=1, cstride=1,
+                     facecolors=P.cm.binary(incoh_diff_1 / np.max(incoh_diff_1)),
                      shade=False, zorder=4)
-    ax1.plot_surface(X, Z+2, Y, rstride=1, cstride=1, facecolors=P.cm.binary(incoh_diff_2 / np.max(incoh_diff_2)),
+    ax1.plot_surface(X, Z+2, Y, rstride=1, cstride=1,
+                     facecolors=P.cm.binary(incoh_diff_2 / np.max(incoh_diff_2)),
                      shade=False, zorder=3)
-    # ax1.plot_surface(X, Z+3, Y, rstride=1, cstride=1, facecolors=P.cm.binary(incoh_diff_3 / np.max(incoh_diff_3)),
-    #                  shade=False, zorder=2)
-    ax1.plot_surface(-Z, X, Y, rstride=1, cstride=1, facecolors=P.cm.binary(coh_diff / np.max(coh_diff)), shade=False, zorder=1)
-    #ax1.scatter(np.zeros_like(fluo.coords[0,:]), fluo.coords[0,:], fluo.coords[1,:] )
+    ax1.plot_surface(-Z, X, Y, rstride=1, cstride=1,
+                     facecolors=P.cm.binary(coh_diff / np.max(coh_diff)),
+                     shade=False, zorder=1)
 
     # plot vectors
     ax1.plot(Kx, Ky, Kz, 'r', zorder=50, lw=3)
     ax1.text(-0.4*(np.max(X) + 2), 0, 0, r'$\vec{K}$', 'x', zorder=1000)
     ax1.plot(kx, ky, kz, 'r--', zorder=60, lw=1)
-    ax1.text(-0.3 * (np.max(X) + 2), -0.15*(np.max(X) + 2), -0.25*(np.max(X) + 2), r'$\vec{k}$', (-(np.max(X) + 2), -0.35*(np.max(X) + 2), -0.35*(np.max(X) + 2)), zorder=1000)
+    ax1.text(-0.3 * (np.max(X) + 2), -0.15*(np.max(X) + 2),
+             -0.25*(np.max(X) + 2), r'$\vec{k}$',
+             (-(np.max(X) + 2), -0.35*(np.max(X) + 2), -0.35*(np.max(X) + 2)),
+             zorder=1000)
     ax1.plot(k1x, k1y, k1z, 'b--', zorder=70, lw=1)
-    ax1.text(-0.27*(np.max(X)+2), 0.55 * (np.max(X) + 2), 0.1*(np.max(X)+2), r'$\vec{k}_1$', (-0.5*(np.max(X)+2), (np.max(X)+2), 0.25*(np.max(X)+2)), zorder=1000)
+    ax1.text(-0.27*(np.max(X)+2), 0.55 * (np.max(X) + 2),
+             0.1*(np.max(X)+2), r'$\vec{k}_1$',
+             (-0.5*(np.max(X)+2), (np.max(X)+2), 0.25*(np.max(X)+2)),
+             zorder=1000)
     ax1.plot(k2x, k2y, k2z, 'b--', zorder=80, lw=1)
-    ax1.text(0.17*(np.max(X) + 2), 0.07*(np.max(X) + 2), 0.2*(np.max(X) + 2), r'$\vec{k}_2$', (0.0625*(np.max(X) + 2), (np.max(X) + 2), 0.5*(np.max(X) + 2)), zorder=1000)
+    ax1.text(0.17*(np.max(X) + 2), 0.07*(np.max(X) + 2),
+             0.2*(np.max(X) + 2), r'$\vec{k}_2$',
+             (0.0625*(np.max(X) + 2), (np.max(X) + 2), 0.5*(np.max(X) + 2)),
+             zorder=1000)
     ax1.plot(k3x, k3y, k3z, 'b--', zorder=90, lw=1)
-    ax1.text(0.25 * (np.max(X) + 2), 0.25*(np.max(X) + 2), -0.1*(np.max(X) + 2), r'$\vec{k}_3$', (0.35*(np.max(X) + 2), (np.max(X) + 2), -0.125*(np.max(X) + 2)), zorder=1000)
+    ax1.text(0.25 * (np.max(X) + 2), 0.25*(np.max(X) + 2),
+             -0.1*(np.max(X) + 2), r'$\vec{k}_3$',
+             (0.35*(np.max(X) + 2), (np.max(X) + 2), -0.125*(np.max(X) + 2)),
+             zorder=1000)
     ax1.scatter(-(np.max(X) + 2), 0, 0, c='red', zorder=40, s=30)
     # q
-    ax1.plot(-(np.max(X) + 2)*np.ones_like(ky), ky-Ky, kz-Kz, 'g', zorder=100, lw=2)
-    ax1.text(-(np.max(X) + 2), -0.45*(np.max(X) + 2), -0.05*(np.max(X) + 2), r'$\vec{q}$', (0,1,0.65), zorder=1000)
+    ax1.plot(-(np.max(X) + 2)*np.ones_like(ky), ky-Ky, kz-Kz, 'g',
+             zorder=100, lw=2)
+    ax1.text(-(np.max(X) + 2), -0.45*(np.max(X) + 2),
+             -0.05*(np.max(X) + 2), r'$\vec{q}$', (0,1,0.65), zorder=1000)
     # q1,q2, q3
     ax1.plot(q1x, q1y, q1z, 'g', zorder=110, lw=2)
-    ax1.text(-0.3 * (np.max(X) + 2), (np.max(X) + 2), 0.4*(np.max(X) + 2), r'$\vec{q}_1$', (1,0,0.4), zorder=1000)
+    ax1.text(-0.3 * (np.max(X) + 2), (np.max(X) + 2),
+             0.4*(np.max(X) + 2), r'$\vec{q}_1$', (1,0,0.4), zorder=1000)
     ax1.plot(q2x, q2y, q2z, 'g', zorder=120, lw=2)
-    ax1.text(0.2 * (np.max(X) + 2), (np.max(X) + 2), 0.15*(np.max(X) + 2), r'$\vec{q}_2$', (1,0,-1.8), zorder=1000)
+    ax1.text(0.2 * (np.max(X) + 2), (np.max(X) + 2),
+             0.15*(np.max(X) + 2), r'$\vec{q}_2$', (1,0,-1.8), zorder=1000)
     ax1.plot(q3x, q3y, q3z, 'g', zorder=130, lw=2)
-    ax1.text(-0.2 * (np.max(X) + 2), (np.max(X) + 2), -0.15*(np.max(X) + 2), r'$\vec{q}_3$', (1,0,-0.5), zorder=1000)
+    ax1.text(-0.2 * (np.max(X) + 2), (np.max(X) + 2),
+             -0.15*(np.max(X) + 2), r'$\vec{q}_3$', (1,0,-0.5), zorder=1000)
 
     # draw a sphere for each data point
     r = 0.25*np.ones_like(fluo.coords[1,:])
     n = 500
-    for (xi, yi, zi, ri) in zip(np.zeros_like(fluo.coords[0,:]), fluo.coords[0,:], fluo.coords[1,:], r):
+    for (xi, yi, zi, ri) in zip(np.zeros_like(fluo.coords[0,:]),
+                                fluo.coords[0,:], fluo.coords[1,:], r):
         (xs, ys, zs) = drawSphere(xi, yi, zi, ri)
         ax1.plot_surface(xs, ys, zs, color="purple", zorder=n)
-        n+=10
+        n += 10
 
     # Hide grid lines
     ax1.axis('off')
@@ -165,7 +187,6 @@ def Figure_1():
     ax1.set_yticks([])
     ax1.set_zticks([])
 
-    #ax1.set_zlim((0., 1.))
     P.tight_layout()
     P.show()
 
@@ -173,14 +194,18 @@ def Figure_1():
 def Figure_Intro_Components():
     np.random.seed(0x5EED)
 
-    MITPhysics = np.array(Image.open('MITPhysics.jpeg').convert('L'))
-    MITCamera = np.array(Image.open('MITCamera.jpeg').convert('L'))
+    MITPhysics = np.array(Image.open('images/MITPhysics.jpeg').convert('L'))
+    MITCamera = np.array(Image.open('images/MITCamera.jpeg').convert('L'))
     Mod_MITPhysics = np.abs(np.fft.fftshift(np.fft.fft2(MITPhysics)))
     Angle_MITPhysics = np.angle(np.fft.fftshift(np.fft.fft2(MITPhysics)))
     Mod_MITCamera = np.abs(np.fft.fftshift(np.fft.fft2(MITCamera)))
     Angle_MITCamera = np.angle(np.fft.fftshift(np.fft.fft2(MITCamera)))
-    Inverted_1 = np.real(np.fft.fft2(np.fft.fftshift(Mod_MITPhysics)*np.exp(-1j*np.fft.fftshift(Angle_MITCamera))))
-    Inverted_2 = np.real(np.fft.fft2(np.fft.fftshift(Mod_MITCamera)*np.exp(-1j*np.fft.fftshift(Angle_MITPhysics))))
+    Inverted_1 = np.real(np.fft.fft2(np.fft.fftshift(Mod_MITPhysics)
+                                     * np.exp(-1j*np.fft.fftshift(
+                                        Angle_MITCamera))))
+    Inverted_2 = np.real(np.fft.fft2(np.fft.fftshift(Mod_MITCamera)
+                                     * np.exp(-1j*np.fft.fftshift(
+                                        Angle_MITPhysics))))
 
     # Plot the original images
     fig = P.figure(figsize=(7, 7))
@@ -259,15 +284,14 @@ def Figure_2():
 
     fig = P.figure(figsize=(20, 5))
     P.rcParams.update({'font.size': 22})
-    # Plot 1D shots
-    ax1 = fig.add_subplot(141)
-    #ax1.plot(fluo.k_pix, fluo.get_incoh_intens(), label="Shot")
 
     # Plot the bispectrum
+    ax1 = fig.add_subplot(141)
     box_extent = 2*fluo.kmax
     bispectrum = fluo.marginalize_g3(num_shots=num_shots)
     masked_bispectrum = np.ma.masked_where(fluo.weights_2d == 0, bispectrum)
-    im = ax1.imshow(masked_bispectrum, origin='lower', cmap=cmap, extent=[-box_extent, box_extent, -box_extent, box_extent])
+    im = ax1.imshow(masked_bispectrum, origin='lower', cmap=cmap,
+                    extent=[-box_extent, box_extent, -box_extent, box_extent])
     divider = make_axes_locatable(ax1)
     cax1 = divider.append_axes("right", size="5%", pad=0.05)
     cbar = P.colorbar(im, cax=cax1)
@@ -284,11 +308,11 @@ def Figure_2():
     ax2 = fig.add_subplot(142)
     closure = fluo.closure_from_data(num_shots=num_shots)
     masked_closure = np.ma.masked_where(fluo.weights_2d == 0, closure)
-    im = ax2.imshow(masked_closure, origin='lower', cmap=cmap, extent=[-box_extent, box_extent, -box_extent, box_extent])
+    im = ax2.imshow(masked_closure, origin='lower', cmap=cmap,
+                    extent=[-box_extent, box_extent, -box_extent, box_extent])
     divider = make_axes_locatable(ax2)
     cax2 = divider.append_axes("right", size="5%", pad=0.05)
     cbar = P.colorbar(im, cax=cax2)
-    #ax2.set_ylabel(r"$q_2$ $[\mathrm{Length}]^{-1}$")
     ax2.set_xlabel(r"$q_1$ $[\mathrm{Length}]^{-1}$")
     ax2.set_title("Closure")
     ax2.text(0.87, 0.95, 'B', transform=ax2.transAxes,
@@ -296,39 +320,42 @@ def Figure_2():
     ax2.set_xticks([-10, 0, 10])
     ax2.set_yticks([-10, 0, 10])
 
-    # Plot the closure phase (last term of triple correlation normalized and arccos) and label Phi
+    # Plot the closure phase label useful area of Phi
     ax3 = fig.add_subplot(143)
-    closurePhase = fluo.phase_from_data(num_shots=num_shots)
+    closurePhase = np.arccos(fluo.cosPhi_from_data(num_shots=num_shots))
     masked_closurePhase = np.ma.masked_where(fluo.weights_2d == 0, closurePhase)
-    im = ax3.imshow(masked_closurePhase, origin='lower', cmap = cmap, extent=[-box_extent, box_extent, -box_extent, box_extent])
+    im = ax3.imshow(masked_closurePhase, origin='lower', cmap = cmap,
+                    extent=[-box_extent, box_extent, -box_extent, box_extent])
     divider = make_axes_locatable(ax3)
     cax3 = divider.append_axes("right", size="5%", pad=0.05)
     cbar = P.colorbar(im, cax=cax3)
     cbar.set_ticks([0, np.pi])
     cbar.set_ticklabels(["0", r"$\pi$"])
-    #ax3.set_ylabel(r"$q_2$ $[\mathrm{Length}]^{-1}$")
     ax3.set_xlabel(r"$q_1$ $[\mathrm{Length}]^{-1}$")
     ax3.set_title("Closure Phase")
     ax3.text(0.87, 0.95, 'C', transform=ax3.transAxes,
              fontsize=22, fontweight='bold', va='top', c='black')
     # Create a Rectangle patch
-    rect = matplotlib.patches.Rectangle((0, 0), box_extent/2, box_extent/2, linewidth=2, edgecolor='w', facecolor='none')
+    rect = matplotlib.patches.Rectangle((0, 0), box_extent/2, box_extent/2,
+                                        linewidth=2, edgecolor='w',
+                                        facecolor='none')
     # Add the patch to the Axes
     ax3.add_patch(rect)
     ax3.set_xticks([-10, 0, 10])
     ax3.set_yticks([-10, 0, 10])
 
-    # Plot Phi and label diagonals processed for phase recovery
+    # Plot Phi and label the diagonals processed for phase recovery
     box_extent = fluo.kmax
     ax4 = fig.add_subplot(144)
-    Phi = fluo.phase_from_data(num_shots=num_shots)[fluo.num_pix - 1:3 * fluo.num_pix // 2, fluo.num_pix - 1:3 * fluo.num_pix // 2]
+    Phi = np.arccos(fluo.cosPhi_from_data(num_shots=num_shots)
+                    [fluo.num_pix - 1:3 * fluo.num_pix // 2,
+                    fluo.num_pix - 1:3 * fluo.num_pix // 2])
     im = ax4.imshow(Phi, origin='lower', extent=[0, box_extent, 0, box_extent])
     divider = make_axes_locatable(ax4)
     cax4 = divider.append_axes("right", size="5%", pad=0.05)
     cbar = P.colorbar(im, cax=cax4)
     cbar.set_ticks([0, np.pi])
     cbar.set_ticklabels(["0", r"$\pi$"])
-    #ax4.set_ylabel(r"$q_2$ $[\mathrm{Length}]^{-1}$")
     ax4.set_xlabel(r"$q_1$ $[\mathrm{Length}]^{-1}$")
     ax4.set_title(r"$\left| \Phi \right|$")
     ax4.text(0.87, 0.95, 'D', transform=ax4.transAxes,
@@ -336,28 +363,33 @@ def Figure_2():
     ax4.set_xticks([0, 5])
     ax4.set_yticks([0, 5])
     # Draw diagonal
-    ax4.plot(np.linspace(0, box_extent, 1000), np.linspace(0, box_extent, 1000), color='red',zorder=1)
+    ax4.plot(np.linspace(0, box_extent, 1000),
+             np.linspace(0, box_extent, 1000), color='red',zorder=1)
     # Draw diagonals processed up to kmax
     for x in np.linspace(0,box_extent,len(Phi[0,:])+1):
         # Create a Rectangle patch
-        rect = matplotlib.patches.Rectangle((x-10*box_extent/len(Phi[0,:]), box_extent-x-10*box_extent/len(Phi[0,:])), box_extent/len(Phi[0,:]), box_extent/len(Phi[0,:]), linewidth=1, edgecolor='w', facecolor='none',zorder=2)
+        rect = matplotlib.patches.Rectangle(
+            (x-10*box_extent/len(Phi[0,:]),
+             box_extent-x-10*box_extent/len(Phi[0,:])),
+            box_extent/len(Phi[0,:]), box_extent/len(Phi[0,:]),
+            linewidth=1, edgecolor='w', facecolor='none',zorder=2)
         # Add the patch to the Axes
         ax4.add_patch(rect)
     # Draw diagonals processed up to qmax
     for x in np.linspace(0, box_extent, len(Phi[0, :]) + 1):
         # Create a Rectangle patch
         rect = matplotlib.patches.Rectangle(
-            (x + 10 * box_extent / len(Phi[0, :]), box_extent - x + 10 * box_extent / len(Phi[0, :])),
-            box_extent / len(Phi[0, :]), box_extent / len(Phi[0, :]), linewidth=1, edgecolor='pink', facecolor='none',zorder=2)
+            (x + 10 * box_extent / len(Phi[0, :]),
+             box_extent - x + 10 * box_extent / len(Phi[0, :])),
+            box_extent / len(Phi[0, :]), box_extent / len(Phi[0, :]),
+            linewidth=1, edgecolor='pink', facecolor='none',zorder=2)
         # Add the patch to the Axes
         ax4.add_patch(rect)
     ax4.set_xlim([0,box_extent])
     ax4.set_ylim([0,box_extent])
 
     P.tight_layout()
-    #P.subplots_adjust(wspace=0.4)
     P.show()
-
 
 
 def Figure_3():
@@ -390,14 +422,13 @@ def Figure_3():
     P.show()
 
 
-
-
 def Figure_4():
     # Intersection finding plot
     np.random.seed(0x5EED)
     fluo = Speckle_1D.Fluorescence_1D(kmax=5, num_pix=51, num_atoms=3)
     solved, error = fluo.PhiSolver(num_shots=10000) # Use phase_from_data in PhiSolver, error_threshold=10
     # Remember to uncomment below "Plot some stuff for publication" in find_next_phi
+
 
 def Figure_ResolvingDemo():
     # Constraining the possible values of Phi at large displacements from the origin
@@ -719,7 +750,7 @@ def Figure_PhaseSolving_1D(num_atoms=3, num_pix=201, kmax=7, useDFT=False):
 def Figure_5_Rows(num_atoms=3, num_pix=201, kmax=7, useDFT=False):
     # Shows that the phase can be solved exactly on a 2D detector
     np.random.seed(0x5EED)
-    plot = Plot_2D.Plot_2D(num_pix=11, num_atoms=7, kmax=2, useCrystal=False, useDFT=False)
+    plot = Plot_2D.Plot_2D(num_pix=11, num_atoms=7, kmax=2)
 
     # First, user should do manual resolving to generate subfigures A-D
     plot.plot_PhiSolver_manualSelect(num_shots=20000)
@@ -843,8 +874,7 @@ def Figure_8():
     obj_Phase = np.fft.ifftn(obj_Phase)
 
     obj_NoPhase = np.fft.fftshift(obj_NoPhase)
-    if not fluo.useDFT:
-        obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
+    obj_Phase = np.fft.fftshift(obj_Phase)
 
 
     box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(fluo.num_pix, d=2 * fluo.kmax / fluo.num_pix)))
@@ -893,9 +923,7 @@ def Figure_8():
     obj_Phase = np.fft.ifftn(obj_Phase)
 
     obj_NoPhase = np.fft.fftshift(obj_NoPhase)
-    if not fluo.useDFT:
-        obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
-
+    obj_Phase = np.fft.fftshift(obj_Phase)
 
     box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(2*fluo.num_pix, d=2 * fluo.kmax / fluo.num_pix)))
     # Enhanced resolution autocorrelation
@@ -956,8 +984,7 @@ def Figure_PhaseRamp_HarmInv():
     phase = np.fft.fftshift(truth)
     obj_Phase = np.abs(obj_Phase) * np.exp(1j * phase)
     obj_Phase = np.fft.ifft(obj_Phase, n=zero_pad)
-    if not fluo.useDFT:
-        obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
+    obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
     obj_scaled_x = np.fft.fftshift(np.fft.fftfreq(zero_pad, d=2 * 2 * fluo.kmax / (2 * fluo.num_pix)))
     # Harmonic inversion
     signal = np.sqrt(fluo.coh_ft_double) * np.exp(1j * truth)
@@ -994,8 +1021,7 @@ def Figure_PhaseRamp_HarmInv():
     phase = np.fft.fftshift(ramped)
     obj_Phase = np.abs(obj_Phase) * np.exp(1j * phase)
     obj_Phase = np.fft.ifft(obj_Phase, n=zero_pad)
-    if not fluo.useDFT:
-        obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
+    obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
     obj_scaled_x = np.fft.fftshift(np.fft.fftfreq(zero_pad, d=2 * 2 * fluo.kmax / (2 * fluo.num_pix)))
     # Harmonic inversion
     signal = np.sqrt(fluo.coh_ft_double) * np.exp(1j * ramped)
@@ -1032,8 +1058,7 @@ def Figure_PhaseRamp_HarmInv():
     phase = np.fft.fftshift(flipped)
     obj_Phase = np.abs(obj_Phase) * np.exp(1j * phase)
     obj_Phase = np.fft.ifft(obj_Phase, n=zero_pad)
-    if not fluo.useDFT:
-        obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
+    obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
     obj_scaled_x = np.fft.fftshift(np.fft.fftfreq(zero_pad, d=2 * 2 * fluo.kmax / (2 * fluo.num_pix)))
     # Harmonic inversion
     signal = np.sqrt(fluo.coh_ft_double) * np.exp(1j * flipped)

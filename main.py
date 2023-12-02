@@ -16,8 +16,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         """Run functions in this scratch area. 
         """
-        plot = Plot_1D.Plot_1D(num_atoms=5, num_pix=101, kmax=10)
-        plot.plot_Object()
+        #plot = Plot_1D.Plot_1D(num_atoms=5, num_pix=101, kmax=10)
+        #plot.plot_Object()
         #for n in range(3):
         #    plot.plot_Shot()
         #plot.plot_g2(num_shots=1000)
@@ -51,6 +51,7 @@ if __name__ == '__main__':
     #                                   file="/Users/nolanpeard/Desktop/Test2D-kmax2.h5")
 
         #PaperFigures.Figure_1()
+        #PaperFigures.Figure_Intro_Components()
         #PaperFigures.Figure_5_Rows()
         #PaperFigures.Figure_1_Components()
         #PaperFigures.Figure_3()
@@ -59,7 +60,7 @@ if __name__ == '__main__':
         #PaperFigures.Figure_4()
         #PaperFigures.Figure_5()
         #PaperFigures.Figure_6_1D()
-        #PaperFigures.Figure_2()
+        PaperFigures.Figure_2()
         #PaperFigures.Figure_PhaseRamp_HarmInv()
         #PaperFigures.Figure_CoarsePhase_Demo()
 

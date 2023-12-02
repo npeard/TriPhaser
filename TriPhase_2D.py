@@ -5,7 +5,6 @@ from scipy import optimize
 from itertools import permutations
 import h5py
 import Speckle_2D
-import time
 
 def PhiSolver(cosPhi, initial_phase=[0,0], error_reject=-10):
 	"""Solves the phase for a given cosPhi from data and guesstimate of the
@@ -398,8 +397,7 @@ def append_to_h5file(cosPhi_marginal, phase, filename="data.h5"):
 	Keyword arguments:
 		cosPhi_marginal (float) - the computed marginalized cosPhi array
 		phase (float) - the target phase for the structure
-		filename (string) - the output HDF5 file where the data is to be
-		appended
+		filename (string) - the output HDF5 file
 	"""
 	with h5py.File(filename, 'a') as f:
 		# Create datasets if they don't exist, otherwise append data
@@ -437,14 +435,15 @@ def generate_training_data(num_data=10,
 	Keyword arguments:
 		num_data (int) - the number of data and label pairs to generate and
 		export
+
 		file (string) - the file path where the data is to be exported
+
 		image_stack_depth (int) - the number of images that should be
 		generated per stack in each data/label set
 		"""
 	for _ in range(num_data):
-		fluo = Speckle_2D.Fluorescence_2D(kmax=2, num_pix=11,
-										  num_atoms=np.random.random_integers(3,
-																			  high=10))
+		fluo = Speckle_2D.Fluorescence_2D(
+			kmax=2, num_pix=11, num_atoms=np.random.random_integers(3, high=10))
 		phase_target = fluo.coh_phase_double
 		cosPhi_from_dataPhase = fluo.cosPhi_from_data(num_shots=1000)
 
