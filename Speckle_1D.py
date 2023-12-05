@@ -3,15 +3,23 @@
 import numpy as np
 from numba import jit
 
+
 class Fluorescence_1D:
     def __init__(self, kmax=10, num_pix=201, num_atoms=4, x=None):
-        """Simulate fluorescence speckle from a 1D array of atoms and compute various correlation functions.
+        """Simulate fluorescence speckle from a 1D array of atoms and compute
+        various correlation functions.
 
         Keyword arguments:
             kmax (float) - maximum coordinate in reciprocal space
-            num_pix (int) - number of pixels in reciprocal space, must be an odd number
-            num_atoms (int) - number of atoms in the random array, smaller numbers of atoms lead to less HBT phase noise
-            x (float) - array of user-supplied coordinates to define custom atom array
+
+            num_pix (int) - number of pixels in reciprocal space, must be an
+            odd number
+
+            num_atoms (int) - number of atoms in the random array, smaller
+            numbers of atoms lead to less HBT phase noise
+
+            x (float) - array of user-supplied coordinates to define custom
+            atom array
         """
         self.kmax = kmax
         self.num_pix = num_pix
@@ -20,15 +28,18 @@ class Fluorescence_1D:
         self.init_system()
 
     def init_system(self):
-        """Initialize arrays and variables, generate atomic array. Some arrays are not initialized on startup to save resources.
+        """Initialize arrays and variables, generate atomic array. Some arrays
+        are not initialized on startup to save resources.
         """
         print("Initializing system...")
         self.k_pix = np.linspace(-self.kmax, self.kmax, self.num_pix)
         self.k_pix_even = np.linspace(-self.kmax, self.kmax, self.num_pix+1)
         self.x_pix = np.linspace(-1, 1, self.num_pix)
         self.x_double_pix = np.linspace(-1,1, 2*self.num_pix-1)
-        self.weights = np.correlate(np.ones(self.num_pix), np.ones(self.num_pix), mode = 'full')
-        self.q_pix = np.linspace(-2 * self.kmax, 2 * self.kmax, 2 * self.num_pix - 1)
+        self.weights = np.correlate(np.ones(self.num_pix),
+                                    np.ones(self.num_pix), mode='full')
+        self.q_pix = np.linspace(-2 * self.kmax, 2 * self.kmax,
+                                 2 * self.num_pix - 1)
         self.g2 = None
         self.g3 = None
         self.g2_1d = None
@@ -38,7 +49,8 @@ class Fluorescence_1D:
         self.randomize_coords()
 
     def init_weights_2d(self):
-        """Initialize the 2D weights used to marginalize the 3D triple correlation function.
+        """Initialize the 2D weights used to marginalize the 3D triple
+        correlation function.
         """
         self.weights_2d = self.compute_weights_2d(num_pix=self.num_pix)
 
@@ -48,7 +60,11 @@ class Fluorescence_1D:
         """Calculate the 2D weights using explicit for-loops.
 
             Keyword arguments:
-                num_pix (int) - the number of pixels, self.num_pix, for the simulation
+                num_pix (int) - the number of pixels, self.num_pix, for the
+                simulation
+
+            Returns:
+                weights_2d (float) - array of weights
             """
         weights_2d = np.zeros((2*num_pix-1, 2*num_pix-1))
 
@@ -65,18 +81,22 @@ class Fluorescence_1D:
         """Randomize or load atomic coordinates and compute coherent
         diffraction quantities.
         """
-        self.coords = np.random.random((self.num_atoms)) * 2 - 1  # Set spatial extent of real space object here
+        self.coords = np.random.random((self.num_atoms)) * 2 - 1
+        # Set spatial extent of real space object here
 
         if self.x is not None:
             self.coords = self.x
 
         # Define the object for plotting
-        # This is a real space object, but we place it in a discrete real space with the same number of bins as k-space for DFT
+        # This is a real space object, but we place it in a discrete real space
+        # with the same number of bins as k-space for DFT
         self.object = np.zeros_like(self.x_pix)
         self.object[np.digitize(self.coords,self.x_pix)] = 1/self.num_atoms
         self.object_double = np.zeros_like(self.x_double_pix)
-        self.object_double[np.digitize(self.coords, self.x_double_pix)] = 1/self.num_atoms
-        # object_double is NOT the same object with double sampling, it is slightly different in the binning
+        self.object_double[np.digitize(self.coords, self.x_double_pix)] = (
+                1/self.num_atoms)
+        # object_double is NOT the same object with double sampling, it is
+        # slightly different in the binning
 
         # Define the coherent diffraction
         self.kr_product = np.outer(self.k_pix, self.coords)
@@ -90,6 +110,10 @@ class Fluorescence_1D:
 
     def get_incoh_intens(self):
         """Get the fluorescence intensity in a single shot.
+
+        Returns:
+            (float) - The fluorescence intensity (1d array) across the
+            detector
         """
         return np.abs(np.exp(-1j * (self.kr_product + np.random.random(self.num_atoms))*2*np.pi).mean(1))**2
 
@@ -100,6 +124,9 @@ class Fluorescence_1D:
         Keyword arguments:
             num_shots (int) - the number of shots to use when computing the
             ensemble double correlation function.
+
+        Returns:
+            self.g2 (float) - 2d array of the computed double correlations
         """
         if self.g2 is not None:
             return self.g2
@@ -121,13 +148,18 @@ class Fluorescence_1D:
 
         Keyword arguments:
             num_shots (int) - number of shots to compute the correlation
+
+        Returns:
+            self.g2_1d (float) - the dimension reduced version of the double
+            correlation
         """
         if self.g2_1d is not None:
             return self.g2_1d
 
         if self.g2 is None:
             self.g2 = self.get_g2(num_shots)
-        q_2d = np.subtract.outer(np.arange(self.num_pix), np.arange(self.num_pix))
+        q_2d = np.subtract.outer(np.arange(self.num_pix),
+                                 np.arange(self.num_pix))
         q_2d -= q_2d.min()
         self.g2_1d = np.zeros_like(self.weights)
         np.add.at(self.g2_1d, q_2d, self.g2)
@@ -139,6 +171,9 @@ class Fluorescence_1D:
 
         Keyword arguments:
             num_shots (int) - number of shots to compute the correlation
+
+        Returns:
+            self.g3 (float) - 3d array of the computed triple correlations
         """
         if self.g3 is not None:
             return self.g3
@@ -160,6 +195,10 @@ class Fluorescence_1D:
 
         Keyword arguments:
             num_shots (int) - number of shots to compute the correlation
+
+        Returns:
+            self.g3_2d (float) - the dimension reduced version of the triple
+            correlations
         """
 
         if self.g3 is None:
@@ -185,6 +224,10 @@ class Fluorescence_1D:
         Keyword arguments:
             return_phase (bool) - if True, return the closure phase instead
             of the closure magnitude
+
+        Returns:
+            (float) - 2d array of the closure or the closure phase computed
+            from the structure
         """
         pseudo_coh_ft_double = np.exp(-1j * self.qr_product).sum(1)
         coh_12 = np.multiply.outer(pseudo_coh_ft_double, pseudo_coh_ft_double)
@@ -201,13 +244,16 @@ class Fluorescence_1D:
             c = c / self.num_atoms**3 * (self.weights_2d > 0)
             return c
 
-
     def closure_from_data(self, num_shots=1000):
         """Compute the closure from correlations of incoherent fluorescence
         data.
 
         Keyword arguments:
             num_shots (int) - number of shots to compute the correlation
+
+        Returns:
+            (float) - the 2d array of the closure computed from the
+            correlations of the fluorescence data
         """
         if self.g3_2d is None:
             self.marginalize_g3(num_shots=num_shots)
@@ -227,13 +273,15 @@ class Fluorescence_1D:
                 np.add.outer(g1sq, g1sq) + g1sq[q12])) * (weights > 0)
         return c
 
-
     def cosPhi_from_structure(self):
         """Get the cosine of the closure phase from the structure coherent
         diffraction.
+
+        Returns:
+            (float) - the 2d array of the cosine of the closure phase computed
+            from the structure
         """
         return np.cos(self.closure_from_structure(return_phase=True))
-
 
     def cosPhi_from_data(self, num_shots=1000):
         """Compute the cosine of the closure phase from correlations of
@@ -241,6 +289,10 @@ class Fluorescence_1D:
 
         Keyword arguments:
             num_shots (int) - number of shots to compute the correlation
+
+        Returns:
+            (float) - the 2d array of the cosine of the closure phase computed
+            from the correlations of simulated fluorescence
         """
         clos = self.closure_from_data(num_shots=num_shots)
         clos = clos / 2

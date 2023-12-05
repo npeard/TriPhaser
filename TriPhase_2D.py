@@ -19,6 +19,11 @@ def PhiSolver(cosPhi, initial_phase=[0,0], error_reject=-10):
 		initial_phase (float) - estimated value of the first pixel of phase
 		to be retrieved. Accuracy of this estimate determines fidelity of
 		phase retrieval.
+
+	Returns:
+		solved (float) - the solved phases out to qmax
+
+		error (float) - the error values associated with the solved phases
 	"""
 	num_pix = int((cosPhi.shape[0] + 1) / 2)
 	cosPhi_sym = (cosPhi[num_pix - 1:2 * num_pix, num_pix - 1:2 * num_pix,
@@ -219,6 +224,11 @@ def PhiSolver_manualSelect(cosPhi, initial_phase=[0,0], Alt=None):
 		initial_phase (float) - estimated value of the first pixel of phase
 		to be retrieved. Accuracy of this estimate determines fidelity of
 		phase retrieval.
+
+	Returns:
+		solved (float) - the solved phases out to qmax
+
+		error (float) - the error values associated with the solved phases
 	"""
 	num_pix = int((cosPhi.shape[0] ))
 	# cosPhi_sym = (cosPhi[num_pix - 1:2 * num_pix, num_pix - 1:2 * num_pix,
@@ -343,6 +353,13 @@ def find_next_phi(xdata=None, ydata=None, AltReturn=False):
 		ydata (float) - sine of the candidate theta value array
 		AltReturn (bool) - when True, returns the alternate (less optimal)
 		value of theta that fits the data
+
+	Returns:
+		(float) - the optimal value for the next value of the phase,
+		given the input arguments
+
+		fFinal (float) - the value of the error computed for that optimal
+		phase value
 	"""
 
 	# Samples the error function and starts minimization near the minimum

@@ -3,8 +3,8 @@
 import numpy as np
 import pylab as P
 import Speckle_1D
-from scipy import optimize
 import TriPhase_1D
+
 
 class Plot_1D:
     def __init__(self, num_atoms=5, num_pix=201, kmax=10):
@@ -27,7 +27,6 @@ class Plot_1D:
                                                num_pix=self.num_pix,
                                                num_atoms=self.num_atoms)
 
-
     def plot_Object(self):
         """Plot the atomic array, the array retrieved by taking the inverse
         Fourier transform of the coherent diffraction intensity, and the
@@ -48,16 +47,15 @@ class Plot_1D:
         obj_Phase = np.fft.fftshift(obj_Phase)
 
         scaled_x = np.fft.fftshift(np.fft.fftfreq(
-            self.fluo.num_pix,d=2*self.fluo.kmax/self.fluo.num_pix))
+            self.fluo.num_pix, d=2*self.fluo.kmax/self.fluo.num_pix))
         P.plot(scaled_x, np.abs(obj_NoPhase),
                label="Object from Intensity")
         P.plot(scaled_x, np.abs(obj_Phase), '--',
                label="Object from Intensity + Phase")
-        P.xlim([-1,1])
+        P.xlim([-1, 1])
         P.legend()
         P.tight_layout()
         P.show()
-
 
     def plot_Shot(self):
         """Plot a single detector shot.
@@ -68,7 +66,6 @@ class Plot_1D:
         P.legend(("Coherent Intensity", "Incoherent (Fluorescence) Intensity"))
         P.tight_layout()
         P.show()
-
 
     def plot_Intensities(self, num_shots=10000):
         """Plot the coherent diffraction intensity and compare it to the
@@ -97,7 +94,6 @@ class Plot_1D:
         P.tight_layout()
         P.show()
 
-
     def plot_g2(self, num_shots=10000):
         """Plot the full second-order correlation function.
 
@@ -109,7 +105,6 @@ class Plot_1D:
         P.title("g2")
         P.tight_layout()
         P.show()
-
 
     def plot_g3(self, num_shots=10000):
         """Plot the marginalized third-order correlation function.
@@ -207,7 +202,7 @@ class Plot_1D:
         P.tight_layout()
         P.show()
 
-    def plot_simple_PhiSolve(self, num_shots = 1000):
+    def plot_simple_PhiSolve(self, num_shots=1000):
         """Plot the phase retrieved without sign information from all
         constraints of Phi.
 
@@ -230,13 +225,12 @@ class Plot_1D:
         P.plot(np.linspace(0, len(real_phase), len(real_phase)),
                real_phase, label='Exact')
         P.plot(np.linspace(0, len(solved), len(solved)), solved,
-               'o--',label=r'$\Phi = |\Phi|$')
+               'o--', label=r'$\Phi = |\Phi|$')
         s.set_ylabel(r'$\phi$')
         s.set_xlabel("Pixel Index")
         P.legend()
         P.tight_layout()
         P.show()
-
 
     def plot_PhiSolver(self, num_shots=10000):
         """Plot the phase retrieved using sign information from all
@@ -257,7 +251,7 @@ class Plot_1D:
         plot_solved = unwrap_phase(solved[:])
         plot_real_phase = unwrap_phase(real_phase)
 
-        fig = P.figure(figsize=(5,5))
+        fig = P.figure(figsize=(5, 5))
         # Plot the solved phase branch
         s = fig.add_subplot(111)
         P.plot(np.linspace(0, len(real_phase), len(real_phase)),
@@ -265,7 +259,7 @@ class Plot_1D:
         P.plot(np.linspace(0, len(real_phase), len(real_phase)),
                plot_solved, label='Solved')
         P.plot(np.linspace(0, len(real_phase), len(real_phase)),
-               np.cos(plot_real_phase-plot_solved), label = 'cos(Diff)')
+               np.cos(plot_real_phase-plot_solved), label='cos(Diff)')
         P.legend()
         P.tight_layout()
         P.show()

@@ -7,6 +7,8 @@ import Plot_1D
 import Plot_2D
 import Speckle_2D
 import Speckle_1D
+import TriPhase_1D
+import TriPhase_2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from skimage.restoration import unwrap_phase
 from PIL import Image
@@ -42,7 +44,10 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
 
 
 def Figure_1():
-    # Show experimental setup
+    """Plot a schematic of diffraction from a group of atoms in the forward
+    direction (coherent diffraction) and a set of incoherent frames collected
+    from the side (incoherent diffraction).
+    """
     np.random.seed(0x5EED)
     fluo = Speckle_2D.Fluorescence_2D(kmax=5, num_pix=201, num_atoms=19)
 
@@ -191,7 +196,10 @@ def Figure_1():
     P.show()
 
 
-def Figure_Intro_Components():
+def Figure_S1():
+    """Show how the inverse Fourier transform loses fidelity when the phases
+    from the Fourier transform of two images are swapped.
+    """
     np.random.seed(0x5EED)
 
     MITPhysics = np.array(Image.open('images/MITPhysics.jpeg').convert('L'))
@@ -274,8 +282,12 @@ def Figure_Intro_Components():
     P.tight_layout()
     P.show()
 
-def Figure_2():
-    # Show how we get the Phi map and what the bispectrum and closure look like
+
+def BiSpectrumClosure():
+    """Plot the bispectrum, closure, closure phase, and a non-redundant
+    region of Phi to illustrate what experimental data we are using to
+    retrieve the phase.
+    """
     fluo = Speckle_1D.Fluorescence_1D(kmax=5, num_pix=101, num_atoms=3)
     num_shots = 10000
 
@@ -392,12 +404,18 @@ def Figure_2():
     P.show()
 
 
-def Figure_3():
-    # Simple Phi solving without sign information
+def Figure_2():
+    """Show how when the phase is retrieved from the first-order difference
+    equation in Phi without the sign information, the phase solution has
+    contours at the expected locations but the sign of the slope is incorrect.
+    """
     np.random.seed(0x5EED+1)
     fluo = Speckle_1D.Fluorescence_1D(kmax=5, num_pix=201, num_atoms=3)
+    cosPhi = fluo.cosPhi_from_data(num_shots=10000)
+    initialPhase = fluo.coh_phase[fluo.num_pix // 2:][0]
 
-    solved = fluo.simple_PhiSolver(num_shots=10000)
+    solved = TriPhase_1D.simple_PhiSolver(cosPhi=cosPhi,
+                                          initial_phase=initialPhase)
     solved = unwrap_phase(solved)
     real_phase = fluo.coh_phase[fluo.num_pix // 2:]
     real_phase = unwrap_phase(real_phase)
@@ -406,8 +424,11 @@ def Figure_3():
     P.rcParams.update({'font.size': 22})
     # Plot the solved phase branch
     s = fig.add_subplot(111)
-    plot_1 = P.plot(fluo.k_pix[fluo.num_pix//2:], real_phase, 'o--', label=r'$\phi_{\mathrm{true}}$')
-    plot_2 = P.plot(fluo.k_pix[fluo.num_pix//2:fluo.num_pix-1], solved, 'o--', label=r'$\phi_{\Phi(\vec{k}) = \left|\Phi(\vec{k}) \right|}$')
+    plot_1 = P.plot(fluo.k_pix[fluo.num_pix//2:], real_phase, 'o--',
+                    label=r'$\phi_{\mathrm{true}}$')
+    plot_2 = P.plot(fluo.k_pix[fluo.num_pix//2:fluo.num_pix-1], solved,
+                    'o--',
+                    label=r'$\phi_{\Phi(\vec{k}) = \left|\Phi(\vec{k}) \right|}$')
     s.axvspan(0, (27/101)*5, alpha=0.3, color='red')
     s.axvspan((27/101)*5, (64/101)*5, alpha=0.3, color='blue')
     s.axvspan((64/101)*5,(101/101)*5, alpha=0.3, color='red')
@@ -416,33 +437,40 @@ def Figure_3():
     P.rcParams.update({'font.size': 16})
     s.set_xticks([0, 5])
     s.set_yticks([-3*np.pi, -2*np.pi, -np.pi, 0, np.pi, 2*np.pi, 3*np.pi])
-    s.set_yticklabels([r'$-3\pi$', r'$-2\pi$', r'$-\pi$', r'$0$', r'$\pi$', r'$2\pi$', r'$3\pi$'])
+    s.set_yticklabels([r'$-3\pi$', r'$-2\pi$', r'$-\pi$', r'$0$', r'$\pi$',
+                       r'$2\pi$', r'$3\pi$'])
     P.legend(loc='upper left')
     P.tight_layout()
     P.show()
 
 
-def Figure_4():
-    # Intersection finding plot
+def Figure_3():
+    """Show how plotting candidate phases in xy-coordinates illustrates the
+    intersection-finding optimization problem. Also show the error landscape
+    for the optimization.
+    """
     np.random.seed(0x5EED)
     fluo = Speckle_1D.Fluorescence_1D(kmax=5, num_pix=51, num_atoms=3)
-    solved, error = fluo.PhiSolver(num_shots=10000) # Use phase_from_data in PhiSolver, error_threshold=10
-    # Remember to uncomment below "Plot some stuff for publication" in find_next_phi
+    # This code was previously a commented section in PhiSolver. This needs
+    # to be retrieved from a previous commit.
 
 
 def Figure_ResolvingDemo():
-    # Constraining the possible values of Phi at large displacements from the origin
+    """Show how the use of resolving to minimize the total error leads to a
+    correct phase solution.
+    """
     np.random.seed(0x5EED)
     fluo = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=11, num_atoms=3)
-
-    from skimage.restoration import unwrap_phase
-    num_shots = 1000
-    solved, error = fluo.PhiSolver(num_shots=num_shots, error_reject=50)
-
-    solved = solved
     real_phase = fluo.coh_phase_double[fluo.num_pix - 1:2 * fluo.num_pix - 1,
                  fluo.num_pix - 1:2 * fluo.num_pix - 1]
-    # real_phase = unwrap_phase(real_phase)
+
+    num_shots = 1000
+    cosPhi = fluo.cosPhi_from_data(num_shots=num_shots)
+    initialPhase = [real_phase[0,1], real_phase[1,0]]
+    solved, error = TriPhase_2D.PhiSolver(cosPhi, initial_phase=initialPhase,
+                                   error_reject=50)
+
+    solved = solved
     box_extent = 2*fluo.kmax
 
     fig = P.figure(figsize=(20, 10))
@@ -516,7 +544,10 @@ def Figure_ResolvingDemo():
     cbar.set_ticklabels([r"$-2\pi$", "0", r"$2\pi$"])
 
     # Secondly, with resolving
-    solved, error = fluo.PhiSolver(num_shots=num_shots, error_reject=-10)
+    cosPhi = fluo.cosPhi_from_data(num_shots=num_shots)
+    initialPhase = [real_phase[0,1], real_phase[1,0]]
+    solved, error = TriPhase_2D.PhiSolver(cosPhi, initial_phase=initialPhase,
+                                          error_reject=-1)
     # Plot the solved phase branch
     ax1 = fig.add_subplot(243)
     im = ax1.imshow(solved, cmap='twilight_shifted', origin="lower", vmin=-np.pi, vmax=np.pi, extent=[0, box_extent, 0, box_extent])
@@ -591,164 +622,10 @@ def Figure_ResolvingDemo():
     P.show()
 
 
-def Figure_PhaseSolving_1D(num_atoms=3, num_pix=201, kmax=7, useDFT=False):
-    # Shows that exact and diffeq solution of the structure works individually and that they compare well for 1D structures/detectors
-    from scipy import optimize
-
-    num_shots = 10000
-    np.random.seed(0x5EED+2)
-    fluo = Speckle_1D.Fluorescence_1D(kmax=kmax, num_pix=num_pix,
-									  num_atoms=num_atoms)
-    # Initial data to be fitted
-    Phi_from_dataPhase = fluo.phase_from_data(num_shots=num_shots)
-    Phi_from_dataPhase = (Phi_from_dataPhase[fluo.num_pix - 1:3 * fluo.num_pix // 2, fluo.num_pix - 1:3 * fluo.num_pix // 2] + Phi_from_dataPhase[fluo.num_pix // 2:fluo.num_pix,fluo.num_pix // 2:fluo.num_pix][::-1,::-1]) / 2
-    # Averaging data from both sides of the central axis
-    g2_from_data = fluo.marginalize_g2(num_shots=num_shots)
-
-    # Simple optimization of the error function using differential evolution on compact support
-    print("Learning real-space solution...")
-    res = optimize.differential_evolution(Plot_1D.error_func, bounds=fluo.num_atoms * [(-1, 1), ], args=(fluo.q_pix, g2_from_data, Phi_from_dataPhase,fluo.num_pix), workers=-1)
-
-    print("Solution", res.x)
-    print("Actual", fluo.coords)
-
-    trial = Speckle_1D.Fluorescence_1D(kmax=kmax, num_pix=num_pix,
-									   num_atoms=num_atoms, x=res.x)
-
-    # Exact solution
-    solved, error = fluo.PhiSolver(num_shots=num_shots)  # Use phase_from_data in PhiSolver, error_threshold=10
-
-    fig = P.figure(figsize=(20, 5))
-    P.rcParams.update({'font.size': 22})
-    s = fig.add_subplot(141)
-    s.plot(fluo.q_pix, unwrap_phase(fluo.coh_phase_double), label=r"$\phi$ Truth")
-    s.plot(trial.q_pix, unwrap_phase(trial.coh_phase_double), label=r"$\phi$ DiffEvolve")
-    s.plot(fluo.q_pix, unwrap_phase(np.concatenate((-solved[::-1], solved[1:]))), label=r"$\phi$ Exact")
-    s.set_ylabel(r'$\phi(\vec{q})$')
-    s.set_xlabel(r'$\vec{q}$')
-    s.text(0.05, 0.95, 'A', transform=s.transAxes,
-           fontsize=22, fontweight='bold', va='top', c='black')
-    P.rcParams.update({'font.size': 16})
-    s.legend()
-    P.rcParams.update({'font.size': 22})
-
-    # Plotting the object in real space
-    zero_pad = num_pix + 0
-    # Truth Object
-    obj_NoPhase = np.fft.fftshift(fluo.coh_ft_double)
-    obj_NoPhase = np.abs(obj_NoPhase)
-    obj_Phase = np.fft.fftshift(fluo.coh_ft_double)
-    phase = np.fft.fftshift(fluo.coh_phase_double)
-    obj_Phase = np.abs(obj_Phase) * np.exp(1j * phase)
-    obj_NoPhase = np.fft.ifft(obj_NoPhase, n=zero_pad) # Add zero padding by setting n large
-    obj_Phase = np.fft.ifft(obj_Phase, n=zero_pad) # Add zero padding by setting n large
-    obj_NoPhase = np.fft.fftshift(obj_NoPhase)
-    if not fluo.useDFT:
-        obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
-    obj_scaled_x = np.fft.fftshift(np.fft.fftfreq(zero_pad, d=2*2 * fluo.kmax / (2*fluo.num_pix)))
-
-    # Trial Solution
-    trial_NoPhase = np.fft.fftshift(trial.coh_ft_double)
-    trial_NoPhase = np.abs(trial_NoPhase)
-    trial_Phase = np.fft.fftshift(trial.coh_ft_double)
-    phase = np.fft.fftshift(trial.coh_phase_double)
-    trial_Phase = np.abs(trial_Phase) * np.exp(1j * phase)
-    trial_NoPhase = np.fft.ifft(trial_NoPhase, n=zero_pad) # Add zero padding by setting n large
-    trial_Phase = np.fft.ifft(trial_Phase, n=zero_pad) # Add zero padding by setting n large
-    trial_NoPhase = np.fft.fftshift(trial_NoPhase)
-    if not trial.useDFT:
-        trial_Phase = np.fft.fftshift(trial_Phase)  # When using DFT mode, why does this line need commenting?
-    trial_scaled_x = np.fft.fftshift(np.fft.fftfreq(zero_pad, d=2*2 *trial.kmax / (2*trial.num_pix)))
-
-    # Exact Solution
-    exact_NoPhase = np.fft.fftshift(np.sqrt(g2_from_data-1+1/num_atoms))
-    exact_NoPhase = np.abs(exact_NoPhase)
-    exact_Phase = np.fft.fftshift(trial.coh_ft_double)
-    phase = np.fft.fftshift(unwrap_phase(np.concatenate((-solved[::-1], solved[1:]))))
-    exact_Phase = np.abs(exact_Phase) * np.exp(1j * phase)
-    exact_NoPhase = np.fft.ifft(exact_NoPhase, n=zero_pad) # Add zero padding by setting n large
-    exact_Phase = np.fft.ifft(exact_Phase, n=zero_pad) # Add zero padding by setting n large
-    exact_NoPhase = np.fft.fftshift(exact_NoPhase)
-    if not fluo.useDFT:
-        exact_Phase = np.fft.fftshift(exact_Phase)  # When using DFT mode, why does this line need commenting?
-    exact_scaled_x = np.fft.fftshift(np.fft.fftfreq(zero_pad, d=2 * 2 * fluo.kmax / (2 * fluo.num_pix)))
-
-    # Harmonic inversion test
-    signal = np.sqrt(g2_from_data-1+1/num_atoms)*np.exp(1j*unwrap_phase(np.concatenate((-solved[::-1], solved[1:]))))
-    signal = np.real(signal)
-    inversion = harminv.invert(signal, fmin=1, fmax=100, dt=2 * 2 * fluo.kmax / (2 * fluo.num_pix))
-    harm_x = inversion.frequency[inversion.amplitude>0.1][inversion.phase[inversion.amplitude > 0.1]<0]
-    print("Frequencies", inversion.frequency[inversion.amplitude>0.1]) # frequencies
-    print("Decay Rates", inversion.decay[inversion.amplitude > 0.1])  # decay rates
-    print("Q Factor", inversion.Q[inversion.amplitude > 0.1])  # Q factor
-    print("Phase Shift", inversion.phase[inversion.amplitude > 0.1])  # phase shift
-    print("Amplitude", inversion.amplitude[inversion.amplitude > 0.1])  # absolute amplitudes
-
-    s = fig.add_subplot(142)
-    #s.plot(fluo.x_pix, fluo.object, label="Truth Positions")
-    #s.plot(trial.x_pix, trial.object, label="Solution Positions")
-    s.plot(obj_scaled_x, np.abs(obj_Phase)/np.max(np.abs(obj_Phase)), label="Truth Object", color='C0')
-    for x in fluo.coords:
-        s.axvline(x=x, linestyle='dashed')
-    s.set_xlim([-1, 1])
-    s.set_xlabel('X [Length]')
-    s.set_ylabel('Brightness [a.u.]')
-    #s.get_xaxis().set_visible(False)
-    s.get_yaxis().set_visible(False)
-    s.text(0.05, 0.95, 'B', transform=s.transAxes,
-           fontsize=22, fontweight='bold', va='top', c='black')
-    P.rcParams.update({'font.size': 16})
-    #s.legend()
-    P.rcParams.update({'font.size': 22})
-    s.set_xticks([-1, 0, 1])
-
-    s = fig.add_subplot(143)
-    s.plot(trial_scaled_x, np.abs(trial_Phase)/np.max(np.abs(trial_Phase)), label="Solution Object", color='C1')
-    for x in fluo.coords:
-        s.axvline(x=x, linestyle='dashed')
-    for x in res.x:
-        s.axvline(x=x, linestyle='dotted', color='C1')
-    s.set_xlim([-1, 1])
-    s.set_xlabel('X [Length]')
-    #s.set_ylabel('Brightness [a.u.]')
-    # s.get_xaxis().set_visible(False)
-    s.get_yaxis().set_visible(False)
-    s.text(0.05, 0.95, 'C', transform=s.transAxes,
-           fontsize=22, fontweight='bold', va='top', c='black')
-    P.rcParams.update({'font.size': 16})
-    #s.legend()
-    P.rcParams.update({'font.size': 22})
-    s.set_xticks([-1, 0, 1])
-
-    s = fig.add_subplot(144)
-    s.plot(exact_scaled_x, np.abs(exact_Phase)/np.max(np.abs(exact_Phase)), label="Exact Object", color='C2')
-    for x in fluo.coords:
-        s.axvline(x=x, linestyle='dashed')
-    for x in harm_x:
-        s.axvline(x=x, linestyle='dotted', color='C2')
-    s.set_xlim([-1, 1])
-    s.set_xlabel('X [Length]')
-    #s.set_ylabel('Brightness [a.u.]')
-    # s.get_xaxis().set_visible(False)
-    s.get_yaxis().set_visible(False)
-    s.text(0.05, 0.95, 'D', transform=s.transAxes,
-           fontsize=22, fontweight='bold', va='top', c='black')
-    P.rcParams.update({'font.size': 16})
-    #s.legend(loc='lower left')
-    P.rcParams.update({'font.size': 22})
-    s.set_xticks([-1, 0, 1])
-
-    P.tight_layout()
-    ax = s.axis()
-    rec = P.Rectangle((ax[0] - 4.85, ax[2] - 0.3), (ax[1] - ax[0]) + 5, (ax[3] - ax[2]) + 0.38, fill=False, lw=2,
-                      linestyle="solid")
-    rec = s.add_patch(rec)
-    rec.set_clip_on(False)
-    P.show()
-
-
-def Figure_5_Rows(num_atoms=3, num_pix=201, kmax=7, useDFT=False):
-    # Shows that the phase can be solved exactly on a 2D detector
+def Figure_4_Rows():
+    """Shows that exact ab initio phase solving on a 2D array is possible
+    using manual (user-input) resolving to minimize the total error.
+    """
     np.random.seed(0x5EED)
     plot = Plot_2D.Plot_2D(num_pix=11, num_atoms=7, kmax=2)
 
@@ -759,7 +636,10 @@ def Figure_5_Rows(num_atoms=3, num_pix=201, kmax=7, useDFT=False):
     plot.plot_PhiSolver_manualSelect(num_shots=20000, altLabel=True)
 
 
-def Figure_7():
+def Figure_S2():
+    """Show how the double correlation may be used to obtain scattering
+    intensities outside the detector area despite the sum of shots giving noise.
+    """
     np.random.seed(0x5EED+1)
     fluo = Speckle_2D.Fluorescence_2D(kmax=5, num_pix=101, num_atoms=7)
 
@@ -845,8 +725,10 @@ def Figure_7():
     P.show()
 
 
-def Figure_8():
-    # Simple side-by-side comparison of how having extra k-space gives better real space resolution with and without phase information
+def Figure_S3():
+    """Show how having extra k-space gives better real space resolution with
+    and without phase information
+    """
     np.random.seed(0x5EED+2)
     fluo = Speckle_2D.Fluorescence_2D(kmax=8, num_pix=201, num_atoms=5)
     P.rcParams.update({'font.size': 22})
@@ -876,7 +758,6 @@ def Figure_8():
     obj_NoPhase = np.fft.fftshift(obj_NoPhase)
     obj_Phase = np.fft.fftshift(obj_Phase)
 
-
     box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(fluo.num_pix, d=2 * fluo.kmax / fluo.num_pix)))
     # Normal resolution autocorrelation
     ax2 = fig.add_subplot(232)
@@ -888,7 +769,6 @@ def Figure_8():
     ax2.get_yaxis().set_visible(False)
     ax2.text(0.05, 0.95, 'C', transform=ax2.transAxes, fontsize=22, fontweight='bold', va='top', c='black')
 
-
     ax3 = fig.add_subplot(233)
     # Normal resolution inversion
     #ax3.set_title("Object from Intensity + Phase")
@@ -899,7 +779,6 @@ def Figure_8():
     ax3.get_xaxis().set_visible(False)
     ax3.get_yaxis().set_visible(False)
     ax3.text(0.05, 0.95, 'E', transform=ax3.transAxes, fontsize=22, fontweight='bold', va='top', c='white')
-
 
     # Double resolution
     box_extent = np.max(fluo.x_pix[0])
@@ -953,7 +832,7 @@ def Figure_8():
     P.show()
 
 
-def Figure_PhaseRamp_HarmInv():
+def Figure_S5():
     np.random.seed(0x5EED+2)
     # Show the effects of phase ramps, sign flips, and the use of harmonic inversion to find a 1D structure
     fluo = Speckle_1D.Fluorescence_1D(kmax=5, num_pix=501, num_atoms=3)
@@ -1058,7 +937,7 @@ def Figure_PhaseRamp_HarmInv():
     phase = np.fft.fftshift(flipped)
     obj_Phase = np.abs(obj_Phase) * np.exp(1j * phase)
     obj_Phase = np.fft.ifft(obj_Phase, n=zero_pad)
-    obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
+    obj_Phase = np.fft.fftshift(obj_Phase)
     obj_scaled_x = np.fft.fftshift(np.fft.fftfreq(zero_pad, d=2 * 2 * fluo.kmax / (2 * fluo.num_pix)))
     # Harmonic inversion
     signal = np.sqrt(fluo.coh_ft_double) * np.exp(1j * flipped)
@@ -1099,7 +978,7 @@ def Figure_PhaseRamp_HarmInv():
     P.show()
 
 
-def Figure_CoarsePhase_Demo():
+def Figure_S4():
     np.random.seed(0x5EED+2)
     fluo = Speckle_2D.Fluorescence_2D(kmax=3, num_pix=101, num_atoms=5)
 
@@ -1135,8 +1014,7 @@ def Figure_CoarsePhase_Demo():
     phase = np.fft.fftshift(fluo.coh_phase_double)
     obj_Phase = np.abs(obj_Phase) * np.exp(1j * phase)
     obj_Phase = np.fft.ifft2(obj_Phase)
-    if not fluo.useDFT:
-        obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
+    obj_Phase = np.fft.fftshift(obj_Phase)
     obj_scaled_x = np.fft.fftshift(np.fft.fftfreq(len(obj_Phase), d=2 * 2 * fluo.kmax / (2 * fluo.num_pix)))
     box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(2 * fluo.num_pix, d=2 * fluo.kmax / fluo.num_pix)))
     ax3 = fig.add_subplot(223)
@@ -1155,8 +1033,7 @@ def Figure_CoarsePhase_Demo():
     #phase = np.fft.fftshift(pyramid_expand(unwrap_phase(fluo_coarse.coh_phase_double), upscale=(2*fluo.num_pix-1)/(2*fluo_coarse.num_pix-1), order=spline_order))
     obj_Phase = np.abs(obj_Phase) * np.exp(1j * phase)
     obj_Phase = np.fft.ifft2(obj_Phase)
-    if not fluo.useDFT:
-        obj_Phase = np.fft.fftshift(obj_Phase)  # When using DFT mode, why does this line need commenting?
+    obj_Phase = np.fft.fftshift(obj_Phase)
     obj_scaled_x = np.fft.fftshift(np.fft.fftfreq(len(obj_Phase), d=2 * 2 * fluo.kmax / (2 * fluo.num_pix)))
     box_extent = np.max(np.fft.fftshift(np.fft.fftfreq(2 * fluo.num_pix, d=2 * fluo.kmax / fluo.num_pix)))
     ax4 = fig.add_subplot(224)

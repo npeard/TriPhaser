@@ -12,7 +12,7 @@ import TriPhase_1D
 import TriPhase_2D
 
 if __name__ == '__main__':
-    np.random.seed(0x5EED+1)
+    np.random.seed(0x5EED)
     if len(sys.argv) == 1:
         """Run functions in this scratch area. 
         """
@@ -50,19 +50,7 @@ if __name__ == '__main__':
         #
     #                                   file="/Users/nolanpeard/Desktop/Test2D-kmax2.h5")
 
-        #PaperFigures.Figure_1()
-        #PaperFigures.Figure_Intro_Components()
-        #PaperFigures.Figure_5_Rows()
-        #PaperFigures.Figure_1_Components()
-        #PaperFigures.Figure_3()
-        #PaperFigures.Figure_7()
-        #PaperFigures.Figure_8()
-        #PaperFigures.Figure_4()
-        #PaperFigures.Figure_5()
-        #PaperFigures.Figure_6_1D()
-        PaperFigures.Figure_2()
-        #PaperFigures.Figure_PhaseRamp_HarmInv()
-        #PaperFigures.Figure_CoarsePhase_Demo()
+        PaperFigures.Figure_ResolvingDemo()
 
     else:
         print("Error: Unsupported number of command-line arguments")

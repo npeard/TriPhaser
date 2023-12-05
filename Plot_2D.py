@@ -14,13 +14,15 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
     def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
         self.oom = order
         self.fformat = fformat
-        matplotlib.ticker.ScalarFormatter.__init__(self,useOffset=offset,useMathText=mathText)
+        matplotlib.ticker.ScalarFormatter.__init__(self,useOffset=offset,
+                                                   useMathText=mathText)
     def _set_order_of_magnitude(self):
         self.orderOfMagnitude = self.oom
     def _set_format(self, vmin=None, vmax=None):
         self.format = self.fformat
         if self._useMathText:
              self.format = r'$\mathdefault{%s}$' % self.format
+
 
 class Plot_2D:
     def __init__(self, num_atoms=3, num_pix=201, kmax=25):
@@ -267,14 +269,14 @@ class Plot_2D:
         P.tight_layout()
         P.show()
 
-    def plot_PhiSolver_manualSelect(self, num_shots = 1000, altLabel=False):
+    def plot_PhiSolver_manualSelect(self, num_shots=1000, altLabel=False):
         """Plot the phase retrieved using sign information from all
         constraints of Phi and perform re-solving using user input.
 
         Keyword arguments:
             num_shots (int) - number of shots to compute the correlation
         """
-        quad1_real_phase = self.fluo.coh_phase_double[self.num_pix - 1: ,
+        quad1_real_phase = self.fluo.coh_phase_double[self.num_pix - 1:,
                       self.num_pix - 1:]
         quad2_real_phase = self.fluo.coh_phase_double[:self.num_pix, self.num_pix-1:][::-1,:]
 
@@ -347,7 +349,6 @@ class Plot_2D:
             else:
                 xAlt = None
                 yAlt = None
-
 
         # Manually solve quadrant 2
         xAlt = 0  # X position of user-labeled alternates
