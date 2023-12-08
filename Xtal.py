@@ -4,20 +4,43 @@ import numpy as np
 import pylab as P
 import ase
 
-class Xtal:
-    def __init__(self, superLattice=(2,2,2)):
-        import ase.lattice.cubic as ALC
-        import ase.lattice.hexagonal as ALH
-        #self.atoms = ALC.FaceCenteredCubic(size=superLattice, symbol='Cu', pbc=(1,1,1))
-        self.atoms = ALH.HexagonalClosedPacked(size=superLattice, symbol='Cu', pbc=(1,1,1), latticeconstant=(2.,2))
-        # Convert positions to meters
-        self.atoms.set_cell(np.identity(3)*self.atoms.get_cell())
 
+class Xtal:
+    """Xtal class representing crystal structure"""
+
+    def __init__(self, super_lattice=(2, 2, 2)):
+        """Xtal class initializer
+
+        Args:
+            super_lattice (tuple): Size of super lattice
+        """
+        import ase.lattice.cubic as alc
+        import ase.lattice.hexagonal as alh
+
+        # self.atoms = alc.FaceCenteredCubic(size=super_lattice,
+        #                                   symbol='Cu',
+        #                                   pbc=(1, 1, 1))
+
+        self.atoms = alh.HexagonalClosedPacked(size=super_lattice,
+                                               symbol='Cu',
+                                               pbc=(1, 1, 1),
+                                               latticeconstant=(2., 2))
+
+        # Convert positions to meters
+        self.atoms.set_cell(np.identity(3) * self.atoms.get_cell())
 
     def get_positions(self):
-        # Units in meters
+        """Get atomic positions in meters
+
+        Returns:
+            np.ndarray: Array of atomic positions
+        """
         return self.atoms.get_positions()
 
-
     def get_number_atoms(self):
+        """Get number of atoms
+
+        Returns:
+            int: Number of atoms
+        """
         return len(self.atoms)

@@ -18,29 +18,64 @@ import harminv
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Circle, PathPatch
 import mpl_toolkits.mplot3d.art3d as art3d
+import matplotlib.ticker
 
 
-def highlight_cell(x,y, ax=None, **kwargs):
-    rect = P.Rectangle((x-.5, y-.5), 1, 1, fill=False, **kwargs)
-    # For figure 5
-    rect = P.Rectangle(((x-0*.5)*6/11, (y-0*.5)*6/11), 6/11,6/11,
+def highlight_cell(x, y, ax=None, **kwargs):
+    """
+    Highlights a cell in a given plot.
+
+    Parameters:
+        x (float): The x-coordinate of the cell to highlight.
+        y (float): The y-coordinate of the cell to highlight.
+        ax (Axes, optional): The axes object to add the rectangle patch to.
+                             If not provided, the current axes will be used.
+        **kwargs: Additional keyword arguments to pass to the Rectangle constructor.
+
+    Returns:
+        rect (Rectangle): The rectangle patch representing the highlighted cell.
+    """
+    # Create a rectangle patch with the given coordinates and size
+    rect = P.Rectangle((x - 0.5, y - 0.5), 1, 1, fill=False, **kwargs)
+
+    # For figure 5, scale the coordinates and size of the rectangle
+    rect = P.Rectangle(((x - 0 * 0.5) * 6 / 11, (y - 0 * 0.5) * 6 / 11), 6 / 11, 6 / 11,
                        fill=False, **kwargs)
+
+    # If an axes object is not provided, use the current axes
     ax = ax or P.gca()
+
+    # Add the rectangle patch to the axes
     ax.add_patch(rect)
+
+    # Return the rectangle patch
     return rect
 
+
 class OOMFormatter(matplotlib.ticker.ScalarFormatter):
+    """
+    CustomFormatter class inherits from ScalarFormatter class
+
+    Args:
+        order (int): The order of magnitude for the tick labels (default: 0).
+        fformat (str): The format string for the tick labels (default: "%1.1f").
+        offset (bool): Whether to use an offset for the tick labels (default: True).
+        mathText (bool): Whether to use math text for the tick labels (default: True).
+    """
+
     def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
+        """
+        Initializes a CustomFormatter object.
+
+        Args:
+            order (int): The order of magnitude for the tick labels (default: 0).
+            fformat (str): The format string for the tick labels (default: "%1.1f").
+            offset (bool): Whether to use an offset for the tick labels (default: True).
+            mathText (bool): Whether to use math text for the tick labels (default: True).
+        """
         self.oom = order
         self.fformat = fformat
-        matplotlib.ticker.ScalarFormatter.__init__(self,useOffset=offset,
-                                                   useMathText=mathText)
-    def _set_order_of_magnitude(self):
-        self.orderOfMagnitude = self.oom
-    def _set_format(self, vmin=None, vmax=None):
-        self.format = self.fformat
-        if self._useMathText:
-             self.format = r'$\mathdefault{%s}$' % self.format
+        super().__init__(useOffset=offset, useMathText=mathText)
 
 
 def Figure_1():
@@ -51,16 +86,33 @@ def Figure_1():
     np.random.seed(0x5EED)
     fluo = Speckle_2D.Fluorescence_2D(kmax=5, num_pix=201, num_atoms=19)
 
-    def drawSphere(xCenter, yCenter, zCenter, r):
-        # draw sphere
+    def draw_sphere(x_center, y_center, z_center, radius):
+        """
+        Draw a sphere centered at (x_center, y_center, z_center) with the given
+        radius.
+
+        Args:
+            x_center (float): x-coordinate of the center of the sphere.
+            y_center (float): y-coordinate of the center of the sphere.
+            z_center (float): z-coordinate of the center of the sphere.
+            radius (float): radius of the sphere.
+
+        Returns:
+            tuple: A tuple of arrays (x, y, z) representing the coordinates of
+            points on the sphere.
+
+        """
+        # Draw the sphere
         u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
         x = np.cos(u) * np.sin(v)
         y = np.sin(u) * np.sin(v)
         z = np.cos(v)
-        # shift and scale sphere
-        x = r * x + xCenter
-        y = r * y + yCenter
-        z = r * z + zCenter
+
+        # Shift and scale the sphere
+        x = radius * x + x_center
+        y = radius * y + y_center
+        z = radius * z + z_center
+
         return (x, y, z)
 
     coh_diff = np.abs(fluo.coh_ft)
@@ -179,7 +231,7 @@ def Figure_1():
     n = 500
     for (xi, yi, zi, ri) in zip(np.zeros_like(fluo.coords[0,:]),
                                 fluo.coords[0,:], fluo.coords[1,:], r):
-        (xs, ys, zs) = drawSphere(xi, yi, zi, ri)
+        (xs, ys, zs) = draw_sphere(xi, yi, zi, ri)
         ax1.plot_surface(xs, ys, zs, color="purple", zorder=n)
         n += 10
 
@@ -197,7 +249,8 @@ def Figure_1():
 
 
 def Figure_S1():
-    """Show how the inverse Fourier transform loses fidelity when the phases
+    """
+    Show how the inverse Fourier transform loses fidelity when the phases
     from the Fourier transform of two images are swapped.
     """
     np.random.seed(0x5EED)
@@ -284,7 +337,8 @@ def Figure_S1():
 
 
 def BiSpectrumClosure():
-    """Plot the bispectrum, closure, closure phase, and a non-redundant
+    """
+    Plot the bispectrum, closure, closure phase, and a non-redundant
     region of Phi to illustrate what experimental data we are using to
     retrieve the phase.
     """

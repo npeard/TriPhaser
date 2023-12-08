@@ -50,7 +50,28 @@ if __name__ == '__main__':
         #
     #                                   file="/Users/nolanpeard/Desktop/Test2D-kmax2.h5")
 
-        PaperFigures.Figure_ResolvingDemo()
+        def test_get_g2():
+            # Test case 1: g2 is already computed
+            obj = Speckle_1D.Fluorescence_1D()
+            obj.g2 = np.ones((10,))
+            assert np.array_equal(obj.get_g2(), np.ones((10,)))
+
+            # Test case 2: g2 is not computed
+            obj = Speckle_1D.Fluorescence_1D()
+            obj.get_incoh_intens = lambda: np.ones((10,))
+            obj.num_pix = 10
+            assert np.array_equal(obj.get_g2(), np.ones((10,10)))
+
+            # Test case 3: num_shots = 1000
+            obj = Speckle_1D.Fluorescence_1D()
+            obj.get_incoh_intens = lambda: np.ones((10,))
+            obj.num_pix = 10
+            result = obj.get_g2(num_shots=1000)
+            assert result.shape == (10,10)
+            assert np.allclose(result, np.ones((10,10)))
+            #assert np.allclose(result, np.zeros((10,10)))
+
+        test_get_g2()
 
     else:
         print("Error: Unsupported number of command-line arguments")
