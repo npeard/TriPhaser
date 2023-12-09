@@ -276,17 +276,17 @@ class Fluorescence_2D:
     @jit(nopython=True, parallel=False)
     def compute_marginalized_g3(g3, num_pix=1):
         """
-	    Compute the marginalized triple correlation function by summing the 6D
-		array of triple correlations.
+        Compute the marginalized triple correlation function by summing the
+        6D array of triple correlations.
 
-		Args:
-			g3 (ndarray): The 6D array of computed triple correlations.
-			num_pix (int): The number of pixels for the simulation.
+        Args:
+            g3 (ndarray): The 6D array of computed triple correlations.
+            num_pix (int): The number of pixels for the simulation.
 
-		Returns:
-			g3_4d (ndarray): The dimension-reduced version of the triple
-			correlation function.
-		"""
+        Returns:
+            g3_4d (ndarray): The dimension-reduced version of the triple
+            correlation function.
+        """
         g3_4d = np.zeros((2 * num_pix - 1, 2 * num_pix - 1,
                           2 * num_pix - 1, 2 * num_pix - 1))
 
@@ -306,42 +306,45 @@ class Fluorescence_2D:
         return g3_4d
 
     def closure_from_structure(self, return_phase=False):
-        """Compute the closure from the structure coherent diffraction.
+        """
+        Compute the closure from the structure coherent diffraction.
 
-        Keyword arguments:
-            return_phase (bool) - if True, return the closure phase instead
-            of the closure magnitude
+        Args:
+            return_phase (bool): If True, return the closure phase instead
+                of the closure magnitude
 
         Returns:
-            (float) - 4d array of the closure or the closure phase computed
-            from the structure
+            numpy.ndarray: 4d array of the closure or the closure phase computed
+                from the structure
         """
-        pseudo_coh_ft_double = np.exp(-1j * (self.qr_product_x + self.qr_product_y) ).sum(2)
+        pseudo_coh_ft_double = np.exp(
+            -1j * (self.qr_product_x + self.qr_product_y)).sum(2)
         coh_12 = np.multiply.outer(pseudo_coh_ft_double, pseudo_coh_ft_double)
-        sum_q_x = -np.add.outer(self.q_pix[0,:,:], self.q_pix[0,:,:])
-        sum_q_y = -np.add.outer(self.q_pix[1,:,:], self.q_pix[1,:,:])
-        sumqr_product_x = np.multiply.outer(sum_q_x, self.coords[0,:])
-        sumqr_product_y = np.multiply.outer(sum_q_y, self.coords[1,:])
-        coh_1plus2 = np.exp(-1j * ( sumqr_product_x + sumqr_product_y )).sum(4)
+        sum_q_x = -np.add.outer(self.q_pix[0, :, :], self.q_pix[0, :, :])
+        sum_q_y = -np.add.outer(self.q_pix[1, :, :], self.q_pix[1, :, :])
+        sumqr_product_x = np.multiply.outer(sum_q_x, self.coords[0, :])
+        sumqr_product_y = np.multiply.outer(sum_q_y, self.coords[1, :])
+        coh_1plus2 = np.exp(-1j * (sumqr_product_x + sumqr_product_y)).sum(4)
 
         if return_phase:
             return np.angle(coh_12 * coh_1plus2)
         else:
             if self.weights_4d is None:
                 self.init_weights_4d()
-            c = 2. * np.real(coh_12 * coh_1plus2)
+            c = 2.0 * np.real(coh_12 * coh_1plus2)
             c = c / self.num_atoms**3 * (self.weights_4d > 0)
             return c
 
     def closure_from_data(self, num_shots=1000):
-        """Compute the closure from correlations of incoherent fluorescence
+        """
+        Compute the closure from correlations of incoherent fluorescence
         data.
 
-        Keyword arguments:
-            num_shots (int) - number of shots to compute the correlation
+        Args:
+            num_shots (int): number of shots to compute the correlation
 
         Returns:
-            (float) - the 4d array of the closure computed from the
+            (float): the 4d array of the closure computed from the
             correlations of the fluorescence data
         """
         if self.g3_4d is None:
@@ -350,42 +353,44 @@ class Fluorescence_2D:
             self.marginalize_g2(num_shots=num_shots)
 
         g1sq = self.g2_2d - 1 + 1./self.num_atoms
-        dim = 2*self.num_pix-1
-        qx, qy = np.indices(2*(dim,))
+        dim = 2 * self.num_pix-1
+        qx, qy = np.indices(2 * (dim,))
         q12x = np.add.outer(qx, qx)
-        q12x -= (dim)//2
-        q12x[ (q12x < 0) | (q12x >= dim) ] = 0
+        q12x -= dim // 2
+        q12x[(q12x < 0) | (q12x >= dim)] = 0
         q12y = np.add.outer(qy, qy)
-        q12y -= (dim)//2
-        q12y[ (q12y < 0) | (q12y >= dim) ] = 0
+        q12y -= dim // 2
+        q12y[(q12y < 0) | (q12y >= dim)] = 0
         n = self.num_atoms
 
         weights = self.weights_4d
 
         c = ((self.g3_4d - (1 - 3/n + 4/n**2)
-             - (1-2/n)*(np.add.outer(g1sq, g1sq)+g1sq[q12x,q12y]))
+             - (1-2/n)*(np.add.outer(g1sq, g1sq)+g1sq[q12x, q12y]))
              * (weights > 0))
         return c
 
     def cosPhi_from_structure(self):
-        """Get the cosine of the closure phase from the structure coherent
+        """
+        Get the cosine of the closure phase from the structure coherent
         diffraction.
 
         Returns:
-            (float) - the 4d array of the cosine of the closure phase computed
+            (float): the 4d array of the cosine of the closure phase computed
             from the structure
         """
         return np.cos(self.closure_from_structure(return_phase=True))
 
     def cosPhi_from_data(self, num_shots=1000):
-        """Compute the cosine of the closure phase from correlations of
+        """
+        Compute the cosine of the closure phase from correlations of
         incoherent fluorescence data.
 
-        Keyword arguments:
-            num_shots (int) - number of shots to compute the correlation
+        Args:
+            num_shots (int): number of shots to compute the correlation
 
         Returns:
-            (float) - the 4d array of the cosine of the closure phase computed
+            (float): the 4d array of the cosine of the closure phase computed
             from the correlations of simulated fluorescence
         """
         clos = self.closure_from_data(num_shots=num_shots)
@@ -398,11 +403,11 @@ class Fluorescence_2D:
         dim = 2 * self.num_pix - 1
         qx, qy = np.indices(2*(dim,))
         q12x = np.add.outer(qx, qx)
-        q12x -= (dim)//2
-        q12x[ (q12x < 0) | (q12x >= dim) ] = 0
+        q12x -= dim // 2
+        q12x[(q12x < 0) | (q12x >= dim)] = 0
         q12y = np.add.outer(qy, qy)
-        q12y -= (dim)//2
-        q12y[ (q12y < 0) | (q12y >= dim) ] = 0
+        q12y -= dim // 2
+        q12y[(q12y < 0) | (q12y >= dim)] = 0
 
         clos = clos / (np.multiply.outer(g1, g1) * g1[q12x, q12y])
         clos[np.abs(clos) > 1] = np.sign(clos[np.abs(clos) > 1])
