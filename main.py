@@ -8,6 +8,7 @@ import PaperFigures
 import timeit
 
 import Speckle_1D
+import Speckle_2D
 import TriPhase_1D
 import TriPhase_2D
 
@@ -50,28 +51,53 @@ if __name__ == '__main__':
         #
     #                                   file="/Users/nolanpeard/Desktop/Test2D-kmax2.h5")
 
-        def test_get_g2():
-            # Test case 1: g2 is already computed
-            obj = Speckle_1D.Fluorescence_1D()
-            obj.g2 = np.ones((10,))
-            assert np.array_equal(obj.get_g2(), np.ones((10,)))
+        # def test_get_g2():
+        #     # Test case 1: g2 is already computed
+        #     obj = Speckle_1D.Fluorescence_1D()
+        #     obj.g2 = np.ones((10,))
+        #     assert np.array_equal(obj.get_g2(), np.ones((10,)))
+        #
+        #     # Test case 2: g2 is not computed
+        #     obj = Speckle_1D.Fluorescence_1D()
+        #     obj.get_incoh_intens = lambda: np.ones((10,))
+        #     obj.num_pix = 10
+        #     assert np.array_equal(obj.get_g2(), np.ones((10,10)))
+        #
+        #     # Test case 3: num_shots = 1000
+        #     obj = Speckle_1D.Fluorescence_1D()
+        #     obj.get_incoh_intens = lambda: np.ones((10,))
+        #     obj.num_pix = 10
+        #     result = obj.get_g2(num_shots=1000)
+        #     assert result.shape == (10,10)
+        #     assert np.allclose(result, np.ones((10,10)))
+        #     #assert np.allclose(result, np.zeros((10,10)))
+        #
+        # test_get_g2()
+        fluo = Speckle_2D.Fluorescence_2D(num_pix=21)
+        fluo.get_g3(num_shots=10)
+        fluo.init_weights_4d()
 
-            # Test case 2: g2 is not computed
-            obj = Speckle_1D.Fluorescence_1D()
-            obj.get_incoh_intens = lambda: np.ones((10,))
-            obj.num_pix = 10
-            assert np.array_equal(obj.get_g2(), np.ones((10,10)))
+        start_time = timeit.default_timer()
 
-            # Test case 3: num_shots = 1000
-            obj = Speckle_1D.Fluorescence_1D()
-            obj.get_incoh_intens = lambda: np.ones((10,))
-            obj.num_pix = 10
-            result = obj.get_g2(num_shots=1000)
-            assert result.shape == (10,10)
-            assert np.allclose(result, np.ones((10,10)))
-            #assert np.allclose(result, np.zeros((10,10)))
+        #fluo = Speckle_2D.Fluorescence_2D(num_pix=101)
+        g3_4d_orig = fluo.marginalize_g3(num_shots=10)
 
-        test_get_g2()
+        end_time = timeit.default_timer()
+        execution_time = end_time - start_time
+        print(execution_time, "seconds")
+
+        start_time = timeit.default_timer()
+
+        g3_4d_new = fluo.compute_marginalized_g3(fluo.g3,
+                                                 num_pix=21)
+        g3_4d_new[fluo.weights_4d > 0] /= fluo.weights_4d[fluo.weights_4d > 0]
+
+        end_time = timeit.default_timer()
+        execution_time = end_time - start_time
+        print(execution_time, "seconds")
+
+        assert np.allclose(g3_4d_orig, g3_4d_new)
+        print(np.allclose(g3_4d_orig, g3_4d_new))
 
     else:
         print("Error: Unsupported number of command-line arguments")

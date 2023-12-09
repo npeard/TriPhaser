@@ -6,39 +6,44 @@ from numba import jit
 
 class Fluorescence_2D:
     def __init__(self, kmax=5, num_pix=51, num_atoms=3, x=None):
-        """Simulate fluorescence speckle from a 2D array of atoms and compute
+        """
+        Simulate fluorescence speckle from a 2D array of atoms and compute
         various correlation functions.
 
-        Keyword arguments:
-            kmax (float) - maximum coordinate in reciprocal space
-
-            num_pix (int) - number of pixels in reciprocal space, must be an
-            odd number
-
-            num_atoms (int) - number of atoms in the random array, smaller
+        Args:
+            kmax (float): maximum coordinate in reciprocal space
+            num_pix (int): number of pixels in reciprocal space, must be an odd
+            number
+            num_atoms (int): number of atoms in the random array, smaller
             numbers of atoms lead to less HBT phase noise
-
-            x (float) - array of user-supplied coordinates to define custom
-            atom array
+            x (float): array of user-supplied coordinates to define custom atom
+            array
         """
         self.kmax = kmax
         self.num_pix = num_pix
-        self.x = x # User-supplied coordinates
+        self.x = x  # User-supplied coordinates
         self.num_atoms = num_atoms
         self.init_system()
 
     def init_system(self):
-        """Initialize arrays and variables, generate atomic array. Some arrays
+        """
+        Initialize arrays and variables, generate atomic array. Some arrays
         are not initialized on startup to save resources.
         """
         print("Initializing system...")
-        self.k_pix = np.mgrid[-self.kmax:self.kmax:1j * self.num_pix, -self.kmax:self.kmax:1j * self.num_pix]
-        self.x_pix = np.mgrid[-1:1:1j * self.num_pix, -1:1:1j * self.num_pix]
-        self.x_double_pix = np.mgrid[-1:1:1j * (2*self.num_pix-1), -1:1:1j * (2*self.num_pix-1)]
-        self.weights_2d = np.correlate(np.ones(self.num_pix), np.ones(self.num_pix), mode='full')
+        self.k_pix = np.mgrid[-self.kmax:self.kmax:1j * self.num_pix,
+                     -self.kmax:self.kmax:1j * self.num_pix]
+        self.x_pix = np.mgrid[-1:1:1j * self.num_pix,
+                     -1:1:1j * self.num_pix]
+        self.x_double_pix = np.mgrid[-1:1:1j * (2 * self.num_pix - 1),
+                            -1:1:1j * (2 * self.num_pix - 1)]
+        self.weights_2d = np.correlate(np.ones(self.num_pix),
+                                       np.ones(self.num_pix),
+                                       mode='full')
         self.weights_2d = np.multiply.outer(self.weights_2d, self.weights_2d)
-        self.q_pix = np.mgrid[-2 * self.kmax:2 * self.kmax:(2*self.num_pix-1) * 1j,
-                     -2 * self.kmax:2 * self.kmax:(2*self.num_pix-1) * 1j]
+        self.q_pix = np.mgrid[
+                     -2 * self.kmax:2 * self.kmax:(2 * self.num_pix - 1) * 1j,
+                     -2 * self.kmax:2 * self.kmax:(2 * self.num_pix - 1) * 1j]
         self.g2 = None
         self.g3 = None
         self.g2_2d = None
@@ -48,7 +53,8 @@ class Fluorescence_2D:
         self.randomize_coords()
 
     def init_weights_4d(self):
-        """Initialize the 4D weights used to marginalize the 6D triple
+        """
+        Initialize the 4D weights used to marginalize the 6D triple
         correlation function.
         """
         self.weights_4d = self.compute_weights_4d(num_pix=self.num_pix)
@@ -58,14 +64,15 @@ class Fluorescence_2D:
     def compute_weights_4d(num_pix=1):
         """Calculate the 4D weights using explicit for-loops.
 
-        Keyword arguments:
-            num_pix (int) - the number of pixels, self.num_pix, for the
+        Args:
+            num_pix (int): the number of pixels, self.num_pix, for the
             simulation
 
         Returns:
-            weights_4d (float) - array of weights
+            weights_4d (float): array of weights
         """
-        weights_4d = np.zeros((2*num_pix-1,2*num_pix-1,2*num_pix-1,2*num_pix-1))
+        weights_4d = np.zeros((2*num_pix-1, 2*num_pix-1, 2*num_pix-1,
+                               2*num_pix-1))
 
         for k1x in range(num_pix):
             for k2x in range(num_pix):
@@ -89,49 +96,65 @@ class Fluorescence_2D:
         if self.x is not None:
             self.coords = self.x
 
-        # Define the object for plotting
-        # This is a real space object, but we place it in a discrete real space
-        # with the same number of bins as k-space for DFT
-        self.object = np.zeros_like(self.x_pix[0,:,:])
-        self.object[np.digitize(self.coords[0,:], self.x_pix[0, :, 0]),
-        np.digitize(self.coords[1, :], self.x_pix[1, 0, :])] = 1/self.num_atoms
-        self.object_double = np.zeros_like(self.x_double_pix[0,:,:])
-        self.object_double[np.digitize(self.coords[0,:], self.x_double_pix[0,:,0]), np.digitize(self.coords[1,:], self.x_double_pix[1,0,:])] = 1/self.num_atoms
-        # object_double is NOT the same object with double sampling, it is
-        # slightly different in the binning
+        self.object = np.zeros_like(self.x_pix[0, :, :])
+        self.object[
+            np.digitize(self.coords[0, :], self.x_pix[0, :, 0]),
+            np.digitize(self.coords[1, :], self.x_pix[1, 0, :])
+        ] = 1 / self.num_atoms
 
-        # Define the coherent diffraction
-        self.kr_product_x = np.multiply.outer(self.k_pix[0, :, :], self.coords[0, :])
-        self.kr_product_y = np.multiply.outer(self.k_pix[1, :, :], self.coords[1, :])
-        self.qr_product_x = np.multiply.outer(self.q_pix[0, :, :], self.coords[0, :])
-        self.qr_product_y = np.multiply.outer(self.q_pix[1, :, :], self.coords[1, :])
-        self.coh_ft = np.exp(-1j * (self.kr_product_x + self.kr_product_y + 0)*2*np.pi).mean(2)
+        self.object_double = np.zeros_like(self.x_double_pix[0, :, :])
+        self.object_double[
+            np.digitize(self.coords[0, :], self.x_double_pix[0, :, 0]),
+            np.digitize(self.coords[1, :], self.x_double_pix[1, 0, :])
+        ] = 1 / self.num_atoms
+
+        self.kr_product_x = np.multiply.outer(self.k_pix[0, :, :],
+                                              self.coords[0, :])
+        self.kr_product_y = np.multiply.outer(self.k_pix[1, :, :],
+                                              self.coords[1, :])
+        self.qr_product_x = np.multiply.outer(self.q_pix[0, :, :],
+                                              self.coords[0, :])
+        self.qr_product_y = np.multiply.outer(self.q_pix[1, :, :],
+                                              self.coords[1, :])
+
+        self.coh_ft = np.exp(
+            -1j * (self.kr_product_x + self.kr_product_y + 0) * 2 * np.pi).mean(
+            2)
         self.coh_phase = np.angle(self.coh_ft)
-        self.coh_ft_double = np.exp(-1j * (self.qr_product_x + self.qr_product_y + 0)*2*np.pi).mean(2)
+        self.coh_ft_double = np.exp(
+            -1j * (self.qr_product_x + self.qr_product_y + 0) * 2 * np.pi).mean(
+            2)
         self.coh_phase_double = np.angle(self.coh_ft_double)
 
+    import numpy as np
+
     def get_incoh_intens(self):
-        """Get the fluorescence intensity in a single shot.
+        """
+        Get the fluorescence intensity in a single shot.
 
         Returns:
             (float) - The fluorescence intensity (2d array) across the
             detector
         """
-        incoh = np.abs(np.exp(-1j * ((self.kr_product_x + self.kr_product_y
-                                       + np.random.random((self.num_atoms)))
-                                      * 2. * np.pi)).mean(2))**2
+        random_nums = np.random.random((self.num_atoms))
+        exponential = np.exp(-1j * ((self.kr_product_x
+                                     + self.kr_product_y + random_nums)
+                                    * 2. * np.pi))
+        incoh = np.abs(exponential.mean(2))**2
+
         return incoh
 
     def get_g2(self, num_shots=1000):
-        """Get the second-order correlation function computed from the
+        """
+        Get the second-order correlation function computed from the
         specified number of incoherent shots.
 
-        Keyword arguments:
-            num_shots (int) - the number of shots to use when computing the
+        Args:
+            num_shots (int): the number of shots to use when computing the
             ensemble double correlation function.
 
         Returns:
-            self.g2 (float) - 4d array of the computed double correlations
+            self.g2 (float): the 4d array of the computed double correlations
         """
         if self.g2 is not None:
             return self.g2
@@ -151,14 +174,15 @@ class Fluorescence_2D:
         return self.g2
 
     def marginalize_g2(self, num_shots=1000):
-        """Reduce the dimensionality of the double correlation by writing it
+        """
+        Reduce the dimensionality of the double correlation by writing it
         as a function of q instead of k in reciprocal space.
 
-        Keyword arguments:
-            num_shots (int) - number of shots to compute the correlation
+        Args:
+            num_shots (int): number of shots to compute the correlation
 
         Returns:
-            self.g2_2d (float) - the dimension reduced version of the double
+            self.g2_2d (float): the dimension reduced version of the double
             correlation
         """
         if self.g2_2d is not None:
@@ -166,35 +190,49 @@ class Fluorescence_2D:
 
         if self.g2 is None:
             self.g2 = self.get_g2(num_shots=num_shots)
-        q_2d = np.subtract.outer(np.arange(self.num_pix), np.arange(self.num_pix))
-        q_2d -= q_2d.min()
 
-        # Better, but would be nice if the indexing worked directly for 4D
-        # matrices, or we need to Cythonize this
-        self.g2_2d = np.zeros_like(self.weights_2d)
-        for k1x in range(self.num_pix):
-            for k2x in range(self.num_pix):
-                np.add.at(self.g2_2d[self.num_pix - 1 + k1x - k2x, :], q_2d,
-                          self.g2[k1x, :, k2x, :])
-
-        # Explicit quadruple for loops, very slow
-        # for k1x in range(self.num_pix):
-        #     for k2x in range(self.num_pix):
-        #         for k1y in range(self.num_pix):
-        #             for k2y in range(self.num_pix):
-        #                 g2_2d[self.num_pix - 1 + k1x - k2x, self.num_pix - 1 + k1y - k2y] += self.g2[k1x,k1y,k2x,k2y]
+        self.g2_2d = self.compute_marginalized_g2(self.g2, num_pix=self.num_pix)
         self.g2_2d[self.weights_2d > 0] /= self.weights_2d[self.weights_2d > 0]
 
         return self.g2_2d
 
-    def get_g3(self, num_shots=1000):
-        """Compute the third-order correlation function.
+    @staticmethod
+    @jit(nopython=True, parallel=False)
+    def compute_marginalized_g2(g2, num_pix=1):
+        """
+        Compute the marginalized double correlation function by summing the 4D
+        array of double correlations.
 
-        Keyword arguments:
-            num_shots (int) - number of shots to compute the correlation
+        Args:
+            g2 (ndarray): The 4D array of computed double correlations.
+            num_pix (int): The number of pixels for the simulation.
 
         Returns:
-            self.g3 (float) - 6d array of the computed triple correlations
+            g2_2d (ndarray): The dimension-reduced version of the double
+            correlation function.
+        """
+        g2_2d = np.zeros((2 * num_pix - 1, 2 * num_pix - 1))
+
+        for k1x in range(num_pix):
+            for k2x in range(num_pix):
+                for k1y in range(num_pix):
+                    for k2y in range(num_pix):
+                        g2_2d[
+                            num_pix - 1 + k1x - k2x,
+                            num_pix - 1 + k1y - k2y
+                            ] += g2[k1x, k1y, k2x, k2y]
+
+        return g2_2d
+
+    def get_g3(self, num_shots=1000):
+        """
+        Compute the third-order correlation function.
+
+        Args:
+            num_shots (int): number of shots to compute the correlation
+
+        Returns:
+            self.g3 (float): 6d array of the computed triple correlations
         """
         if self.g3 is not None:
             return self.g3
@@ -225,26 +263,47 @@ class Fluorescence_2D:
 
         if self.g3 is None:
             self.g3 = self.get_g3(num_shots=num_shots)
-        self.g3_4d = np.zeros(4 * (len(self.weights_2d),))
 
-        k1x, k1y, k2x, k2y, k3x, k3y = np.indices(6 * (self.num_pix,))
-        # Check the ordering of elements here
-        q1x = k1x - k2x
-        q1y = k1y - k2y
-        q2x = k2x - k3x
-        q2y = k2y - k3y
-        q1x -= q1x.min()
-        q1y -= q1y.min()
-        q2x -= q2x.min()
-        q2y -= q2y.min()
+        self.g3_4d = self.compute_marginalized_g3(self.g3, num_pix=self.num_pix)
 
-        np.add.at(self.g3_4d, tuple([q1x, q1y, q2x, q2y]), self.g3)
         if self.weights_4d is None:
             self.init_weights_4d()
         self.g3_4d[self.weights_4d > 0] /= self.weights_4d[self.weights_4d > 0]
 
         return self.g3_4d
 
+    @staticmethod
+    @jit(nopython=True, parallel=False)
+    def compute_marginalized_g3(g3, num_pix=1):
+        """
+	    Compute the marginalized triple correlation function by summing the 6D
+		array of triple correlations.
+
+		Args:
+			g3 (ndarray): The 6D array of computed triple correlations.
+			num_pix (int): The number of pixels for the simulation.
+
+		Returns:
+			g3_4d (ndarray): The dimension-reduced version of the triple
+			correlation function.
+		"""
+        g3_4d = np.zeros((2 * num_pix - 1, 2 * num_pix - 1,
+                          2 * num_pix - 1, 2 * num_pix - 1))
+
+        for k1x in range(num_pix):
+            for k2x in range(num_pix):
+                for k3x in range(num_pix):
+                    for k1y in range(num_pix):
+                        for k2y in range(num_pix):
+                            for k3y in range(num_pix):
+                                q1x = k1x - k2x + num_pix - 1
+                                q1y = k1y - k2y + num_pix - 1
+                                q2x = k2x - k3x + num_pix - 1
+                                q2y = k2y - k3y + num_pix - 1
+                                g3_4d[q1x, q1y, q2x, q2y] += g3[k1x, k1y, k2x,
+                                                                k2y, k3x, k3y]
+
+        return g3_4d
 
     def closure_from_structure(self, return_phase=False):
         """Compute the closure from the structure coherent diffraction.
