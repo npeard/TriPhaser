@@ -223,7 +223,7 @@ class Fluorescence_1D:
 
         if self.g3 is None:
             self.g3 = self.get_g3(num_shots=num_shots)
-        g3_2d = np.zeros(2 * (len(self.weights),))
+        self.g3_2d = np.zeros(2 * (len(self.weights),))
 
         x, y, z = np.indices(3 * (self.num_pix,))
         q1 = x - y
@@ -231,12 +231,12 @@ class Fluorescence_1D:
         q2 = y - z
         q2 -= q2.min()
 
-        np.add.at(g3_2d, tuple([q1, q2]), self.g3)
+        np.add.at(self.g3_2d, tuple([q1, q2]), self.g3)
         if self.weights_2d is None:
             self.init_weights_2d()
-        g3_2d[self.weights_2d > 0] /= self.weights_2d[self.weights_2d > 0]
+        self.g3_2d[self.weights_2d > 0] /= self.weights_2d[self.weights_2d > 0]
 
-        return g3_2d
+        return self.g3_2d
 
     def closure_from_structure(self, return_phase=False):
         """

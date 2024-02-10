@@ -25,7 +25,7 @@ if __name__ == '__main__':
         #plot.plot_Intensities(num_shots=10000)
         #plot.plot_g3(num_shots=1000)
         #plot.plot_Intensity_Error()
-        #plot.plot_cosPhi(num_shots=100000)
+        #plot.plot_cosPhi(num_shots=1000)
         #plot.plot_Closure(num_shots=1000)
         #plot.plot_ClosurePhase(num_shots=1000)
         #plot.plot_PhiSolver(num_shots=10000)
@@ -44,12 +44,14 @@ if __name__ == '__main__':
         #plot.plot_PhiSolver_manualSelect(num_shots=1000)
         #plot.learnStructure(num_shots=10000)
 
-        # TriPhase_1D.generate_training_data(num_data=100,
-        #                                    file="/Users/nolanpeard/Desktop/Test1D-kmax3.h5")
+        TriPhase_1D.generate_training_data(num_data=100,
+                                           file="/Users/nolanpeard/Desktop/Test1D-kmax3-shot1000.h5")
 
         #TriPhase_2D.generate_training_data(num_data=100,
         #
     #                                   file="/Users/nolanpeard/Desktop/Test2D-kmax2.h5")
+
+        #PaperFigures.Figure_S1()
 
         # def test_get_g2():
         #     # Test case 1: g2 is already computed
@@ -72,32 +74,7 @@ if __name__ == '__main__':
         #     assert np.allclose(result, np.ones((10,10)))
         #     #assert np.allclose(result, np.zeros((10,10)))
         #
-        # test_get_g2()
-        fluo = Speckle_2D.Fluorescence_2D(num_pix=21)
-        fluo.get_g3(num_shots=10)
-        fluo.init_weights_4d()
 
-        start_time = timeit.default_timer()
-
-        #fluo = Speckle_2D.Fluorescence_2D(num_pix=101)
-        g3_4d_orig = fluo.marginalize_g3(num_shots=10)
-
-        end_time = timeit.default_timer()
-        execution_time = end_time - start_time
-        print(execution_time, "seconds")
-
-        start_time = timeit.default_timer()
-
-        g3_4d_new = fluo.compute_marginalized_g3(fluo.g3,
-                                                 num_pix=21)
-        g3_4d_new[fluo.weights_4d > 0] /= fluo.weights_4d[fluo.weights_4d > 0]
-
-        end_time = timeit.default_timer()
-        execution_time = end_time - start_time
-        print(execution_time, "seconds")
-
-        assert np.allclose(g3_4d_orig, g3_4d_new)
-        print(np.allclose(g3_4d_orig, g3_4d_new))
 
     else:
         print("Error: Unsupported number of command-line arguments")

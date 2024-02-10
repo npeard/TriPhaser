@@ -180,11 +180,12 @@ class Plot_1D:
         cosPhi_from_dataPhase = (cosPhi_from_dataPhase[
                                  self.fluo.num_pix-1:3*self.fluo.num_pix//2,
                                  self.fluo.num_pix-1:3*self.fluo.num_pix//2]
-                                 + cosPhi_from_dataPhase[
+                                 + (cosPhi_from_dataPhase[
                                    self.fluo.num_pix//2:self.fluo.num_pix,
                                    self.fluo.num_pix//2:self.fluo.num_pix]
-                                 [::-1, ::-1])/2
-        # Averaging data from both sides of the central axis
+                                 [::-1, ::-1]).T)/2
+
+        # Averaging data from both sides of the central axis (equal by symmetry)
         cosPhi_from_structurePhase = self.fluo.cosPhi_from_structure()[
             self.fluo.num_pix-1:, self.fluo.num_pix-1:]
 

@@ -42,6 +42,7 @@ def simple_PhiSolver(cosPhi, initial_phase=0):
 
 	return solved
 
+
 def PhiSolver(cosPhi, initial_phase=0):
 	"""Solves the phase for a given cosPhi from data and guesstimate of the
 	first phase value. Uses all rows of Phi to solve the sign problem and
@@ -61,7 +62,7 @@ def PhiSolver(cosPhi, initial_phase=0):
 
 		error (float) - the error values associated with the solved phases
 	"""
-	num_pix = int((cosPhi.shape[0] +1 ) / 2)
+	num_pix = int((cosPhi.shape[0] + 1) / 2)
 	cosPhi_sym = (cosPhi[num_pix - 1:3 * num_pix // 2,
 							 num_pix - 1:3 * num_pix // 2]
 							 + cosPhi[num_pix // 2:num_pix,
@@ -141,6 +142,7 @@ def PhiSolver(cosPhi, initial_phase=0):
 	# Return solved branches
 	return solved, error
 
+
 def find_next_phi(xdata=None, ydata=None, AltReturn=False):
 	"""Finds the nearest intersection of sets of possible theta by finding
 	the pairs of vertical and horizontal lines that best fit the data when
@@ -205,7 +207,8 @@ def find_next_phi(xdata=None, ydata=None, AltReturn=False):
 	# Return ideal phi and the value of the error function at that phi
 	return np.arctan2(np.sin(thetaFinal), np.cos(thetaFinal)), fFinal
 
-def append_to_h5file(image_stack, cosPhi_marginal, phase,
+
+def append_to_h5file(cosPhi_marginal, phase,
 					 filename="data.h5"):
 	"""Appends training data consisting of an image stack, the associated
 	marginalized cosPhi, and the structure phase to a file.
@@ -219,19 +222,6 @@ def append_to_h5file(image_stack, cosPhi_marginal, phase,
 	"""
 	with h5py.File(filename, 'a') as f:
 		# Create datasets if they don't exist, otherwise append data
-		if "image_stack" in f.keys():
-			f["image_stack"].resize((f["image_stack"].shape[0] + 1),
-									axis=0)
-			new_data = np.expand_dims(image_stack, axis=0)
-			f["image_stack"][-1:] = new_data
-		else:
-			f.create_dataset("image_stack",
-							 data=np.expand_dims(image_stack, axis=0),
-							 maxshape=(
-								 None, image_stack.shape[0],
-								 image_stack.shape[1],
-								 image_stack.shape[2]), compression="gzip",
-							 compression_opts=9, chunks=True)
 
 		if "cosPhi_marginal" in f.keys():
 			f["cosPhi_marginal"].resize(
@@ -258,9 +248,10 @@ def append_to_h5file(image_stack, cosPhi_marginal, phase,
 							 compression="gzip", compression_opts=9,
 							 chunks=True)
 
+
 def generate_training_data(num_data=1000,
-						 file="/Users/nolanpeard/Desktop/test2.h5",
-						 image_stack_depth = 1):
+						 file="/Users/nolanpeard/Desktop/train-k3-shot1000.h5",
+						 image_stack_depth = 0):
 	"""Generates training data and writes it to a file.
 
 	Keyword arguments:
@@ -274,21 +265,19 @@ def generate_training_data(num_data=1000,
 		fluo = Speckle_1D.Fluorescence_1D(kmax=3, num_pix=51, num_atoms=
 											np.random.random_integers(3, high=10))
 		phase_target = fluo.coh_phase_double
-		cosPhi_from_dataPhase = fluo.cosPhi_from_data(
-			num_shots=1000)
-		image_stack = np.zeros((image_stack_depth, 51, 51))
-		for i in range(image_stack_depth):
-			image_stack[i] = fluo.get_incoh_intens()
+		cosPhi_from_dataPhase = fluo.cosPhi_from_data(num_shots=1000)
 
-		append_to_h5file(image_stack, cosPhi_from_dataPhase, phase_target,
+		num_pix = int((cosPhi_from_dataPhase.shape[0] + 1) / 2)
+		cosPhi_sym_1 = cosPhi_from_dataPhase[num_pix - 1:3 * num_pix // 2,
+					  	num_pix - 1:3 * num_pix // 2]
+
+		append_to_h5file(cosPhi_sym_1, phase_target,
 						 filename=file)
 
 	# Check that the file opens and contains data of the expected size
 	with h5py.File(file, 'r') as f:
-		image_stack_data = f["image_stack"][:]
 		cosPhi_marginal_data = f["cosPhi_marginal"][:]
 		phase_data = f["phase"][:]
 
-	print("image_stack_data: ", image_stack_data.shape)
 	print("cosPhi_marginal_data: ", cosPhi_marginal_data.shape)
 	print("phase_data: ", phase_data.shape)

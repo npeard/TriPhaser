@@ -258,9 +258,13 @@ def Figure_S1():
     MITPhysics = np.array(Image.open('images/MITPhysics.jpeg').convert('L'))
     MITCamera = np.array(Image.open('images/MITCamera.jpeg').convert('L'))
     Mod_MITPhysics = np.abs(np.fft.fftshift(np.fft.fft2(MITPhysics)))
+    # Mod_MITPhysics = np.ones_like(Mod_MITPhysics)
     Angle_MITPhysics = np.angle(np.fft.fftshift(np.fft.fft2(MITPhysics)))
+    # Angle_MITPhysics = np.zeros_like(Angle_MITPhysics)
     Mod_MITCamera = np.abs(np.fft.fftshift(np.fft.fft2(MITCamera)))
+    # Mod_MITCamera = np.ones_like(Mod_MITCamera)
     Angle_MITCamera = np.angle(np.fft.fftshift(np.fft.fft2(MITCamera)))
+    # Angle_MITCamera = np.zeros_like(Angle_MITCamera)
     Inverted_1 = np.real(np.fft.fft2(np.fft.fftshift(Mod_MITPhysics)
                                      * np.exp(-1j*np.fft.fftshift(
                                         Angle_MITCamera))))

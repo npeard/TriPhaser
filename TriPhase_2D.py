@@ -343,6 +343,7 @@ def PhiSolver_manualSelect(cosPhi, initial_phase=[0,0], Alt=None):
 
 	return solved, error
 
+
 def find_next_phi(xdata=None, ydata=None, AltReturn=False):
 	"""Finds the nearest intersection of sets of possible theta by finding
 	the pairs of vertical and horizontal lines that best fit the data when
@@ -407,6 +408,7 @@ def find_next_phi(xdata=None, ydata=None, AltReturn=False):
 	# Return ideal phi and the value of the error function at that phi
 	return np.arctan2(np.sin(thetaFinal), np.cos(thetaFinal)), fFinal
 
+
 def append_to_h5file(cosPhi_marginal, phase, filename="data.h5"):
 	"""Appends training data consisting of the marginalized cosPhi, and the
 	structure phase to a file.
@@ -444,6 +446,7 @@ def append_to_h5file(cosPhi_marginal, phase, filename="data.h5"):
 							 maxshape=(None, phase.shape[0], phase.shape[1]),
 							 compression="gzip", compression_opts=9,
 							 chunks=True)
+
 
 def generate_training_data(num_data=10,
 						 file="/Users/nolanpeard/Desktop/Data2D-2.h5"):
