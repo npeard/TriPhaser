@@ -17,7 +17,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         """Run functions in this scratch area. 
         """
-        #plot = Plot_1D.Plot_1D(num_atoms=5, num_pix=101, kmax=10)
+        plot = Plot_1D.Plot_1D(num_atoms=5, num_pix=101, kmax=10)
         #plot.plot_Object()
         #for n in range(3):
         #    plot.plot_Shot()
@@ -26,8 +26,8 @@ if __name__ == '__main__':
         #plot.plot_g3(num_shots=1000)
         #plot.plot_Intensity_Error()
         #plot.plot_cosPhi(num_shots=1000)
-        #plot.plot_Closure(num_shots=1000)
-        #plot.plot_ClosurePhase(num_shots=1000)
+        plot.plot_Closure(num_shots=1000)
+        plot.plot_ClosurePhase(num_shots=1000)
         #plot.plot_PhiSolver(num_shots=10000)
         #plot.plot_simple_PhiSolve(num_shots=1000)
         #plot.learnStructure(num_shots=10000)
@@ -44,8 +44,9 @@ if __name__ == '__main__':
         #plot.plot_PhiSolver_manualSelect(num_shots=1000)
         #plot.learnStructure(num_shots=10000)
 
-        TriPhase_1D.generate_training_data(num_data=100,
-                                           file="/Users/nolanpeard/Desktop/Test1D-kmax3-shot1000.h5")
+        #TriPhase_1D.generate_training_data(num_data=10000,
+         #
+        #                                  file="/Users/nolanpeard/Desktop/Train1D-kmax3-shot1000-10k.h5")
 
         #TriPhase_2D.generate_training_data(num_data=100,
         #

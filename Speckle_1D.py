@@ -295,12 +295,46 @@ class Fluorescence_1D:
 
     def cosPhi_from_structure(self) -> np.ndarray:
         """
-        Get the cosine of the closure phase from the structure coherent diffraction.
+        Get the cosine of the closure phase from the structure coherent
+        diffraction.
 
         Returns:
             float: The cosine of the closure phase computed from the structure.
         """
         return np.cos(self.closure_from_structure(return_phase=True))
+
+    def cosPhi_from_phase(self) -> np.ndarray:
+        """
+        Get the cosine of the closure phase from the true phase. Reverse model.
+
+        Returns:
+            float: The cosine of the closure phase computed from the unknown
+            phase.
+        """
+        true_phase = self.coh_phase_double[self.num_pix - 1:]
+        cosPhi = self.compute_cosPhi_from_phase(true_phase)
+
+        return cosPhi
+
+    @staticmethod
+    @jit(nopython=True, parallel=False)
+    def compute_cosPhi_from_phase(phase):
+        """
+        Computes the cosine of the phase difference array.
+
+        Parameters:
+            phase (ndarray): The phase array.
+
+        Returns:
+            ndarray: The cosine of the phase difference array.
+        """
+        Phi = np.zeros((phase.shape[0], phase.shape[0]))
+        for n in range(phase.shape[0]):
+            Phi[n, :] = (
+                np.abs(np.roll(phase, -n) - phase - phase[n]))
+        Phi = Phi[:phase.shape[0] // 2 + 1, :phase.shape[0] // 2 + 1]
+
+        return np.cos(Phi)
 
     def cosPhi_from_data(self, num_shots=1000) -> np.ndarray:
         """Compute the cosine of the closure phase from correlations of

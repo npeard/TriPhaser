@@ -132,18 +132,18 @@ class Plot_1D:
         fig = P.figure(figsize=(15, 5))
         cdata = self.fluo.closure_from_data(num_shots=num_shots)
         s = fig.add_subplot(131)
-        im = s.imshow(cdata)
+        im = s.imshow(cdata, origin='lower')
         s.set_title("Closure from Data")
         P.colorbar(im, ax=s)
 
         s = fig.add_subplot(132)
         cstruct = self.fluo.closure_from_structure()
-        im = s.imshow(self.fluo.closure_from_structure())
+        im = s.imshow(self.fluo.closure_from_structure(), origin='lower')
         s.set_title("Closure from Structure")
         P.colorbar(im, ax=s)
 
         s = fig.add_subplot(133)
-        im = s.imshow(cdata - cstruct)
+        im = s.imshow(cdata - cstruct, origin='lower')
         s.set_title("Difference")
         P.colorbar(im, ax=s)
         P.tight_layout()
@@ -158,12 +158,13 @@ class Plot_1D:
         fig = P.figure(figsize=(10, 5))
         s = fig.add_subplot(121)
         im = s.imshow(np.arccos(self.fluo.cosPhi_from_data(
-            num_shots=num_shots)))
+            num_shots=num_shots)), origin='lower')
         s.set_title("Phase from Data")
         P.colorbar(im, ax=s)
 
         s = fig.add_subplot(122)
-        im = s.imshow(np.arccos(self.fluo.cosPhi_from_structure()))
+        im = s.imshow(np.arccos(self.fluo.cosPhi_from_structure()),
+                      origin='lower')
         s.set_title("Phase from Structure")
         P.colorbar(im, ax=s)
         P.tight_layout()
